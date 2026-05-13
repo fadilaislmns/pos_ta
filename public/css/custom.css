@@ -1,0 +1,138 @@
+/* ================= NAVBAR ================= */
+.navbar-nav .nav-link {
+    color: black !important;
+}
+
+.navbar a {
+    color: #3b82f6;
+    text-decoration: none;
+}
+
+.navbar a:hover {
+    text-decoration: underline;
+}
+
+.navbar span {
+    color: #111;
+}
+
+/* ================= SIDEBAR ================= */
+.main-sidebar {
+    background: #ffffff;
+    position: relative;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.brand-link {
+    background: #241e1e;
+    color: #fff !important;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.nav-sidebar .nav-link p {
+    font-size: 14px;
+}
+
+.nav-sidebar .nav-icon {
+    font-size: 15px;
+}
+
+.nav-sidebar .nav-link:hover {
+    background: #b8c8e1;
+    color: white;
+}
+
+.nav-sidebar .nav-link.active {
+    background: #3b82f6;
+    color: white;
+}
+
+.nav-treeview .nav-link {
+    padding-left: 35px;
+    font-size: 13px;
+}
+
+.nav-treeview .nav-link:hover {
+    background: #b7c5da;
+}
+
+.nav-header {
+    color: #94a3b8 !important;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+/* ================= CONTENT ================= */
+.content-wrapper {
+    margin-left: 250px;
+}
+
+html, body {
+    height: 100%;
+}
+
+.main-sidebar,
+.content-wrapper {
+    scroll-behavior: smooth;
+}
+
+/* ================= FORM ================= */
+.form-label {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+/* ================= CUSTOM ================= */
+.bg-purple {
+    background-color: #6f42c1;
+}
+
+/* ================= FILTER PANEL ================= */
+.filter-panel {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 350px;
+    height: 100%;
+    background: white;
+    z-index: 9999;
+    transition: 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-panel.active {
+    right: 0;
+}
+
+.filter-header,
+.filter-body,
+.filter-footer {
+    padding: 15px;
+}
+
+.filter-header,
+.filter-footer {
+    border-bottom: 1px solid #eee;
+}
+
+.filter-body {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* ================= TOAST ================= */
+.toast-error {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #e3342f;
+    color: white;
+    padding: 15px 25px;
+    border-radius: 8px;
+    font-weight: 500;
+    z-index: 9999;
+}
