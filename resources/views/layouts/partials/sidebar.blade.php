@@ -44,10 +44,18 @@
                     </a>
                 </li>
 
+                <li class="nav-item">
+                    <a href="/customers" class="nav-link {{ request()->is('customers*') ? 'active' : '' }}">
+                        <i class="fas fa-users nav-icon"></i>
+                        <p>Pelanggan</p>
+                    </a>
+                </li>
+
                 <!-- TRANSAKSI -->
                 <li class="nav-header">TRANSAKSI</li>
 
-                <li class="nav-item has-treeview {{ request()->is('sales*') || request()->is('purchases*') ? 'menu-open' : '' }}">
+                <li
+                    class="nav-item has-treeview {{ request()->is('sales*') || request()->is('purchases*') ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-shopping-cart"></i>
                         <p>
@@ -70,6 +78,13 @@
                                 <p>Pembelian</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('customer-debts.index') }}"
+                                class="nav-link {{ request()->is('customer-debts*') ? 'active' : '' }}">
+                                <i class="fas fa-file-invoice-dollar nav-icon"></i>
+                                <p>Piutang Pelanggan</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 
@@ -87,19 +102,99 @@
 
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="{{ route('stocks.index') }}" class="nav-link {{ request()->is('stocks') ? 'active' : '' }}">
+                            <a href="{{ route('stocks.index') }}"
+                                class="nav-link {{ request()->is('stocks') ? 'active' : '' }}">
                                 <i class="fas fa-boxes nav-icon"></i>
                                 <p>Stok</p>
                             </a>
                         </li>
 
                         <li class="nav-item">
-                            <a href="{{ route('stocks.movements') }}" class="nav-link {{ request()->is('stocks/movements*') ? 'active' : '' }}">
+                            <a href="{{ route('stocks.movements') }}"
+                                class="nav-link {{ request()->is('stocks/movements*') ? 'active' : '' }}">
                                 <i class="fas fa-exchange-alt nav-icon"></i>
                                 <p>Stok Movement</p>
                             </a>
                         </li>
                     </ul>
+                </li>
+
+                <!-- REPORT -->
+                <li class="nav-header">REPORT & ANALYTICS</li>
+
+                <!-- LAPORAN -->
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-chart-bar"></i>
+                        <p>Laporan
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="/reports/sales" class="nav-link">
+                                <i class="fas fa-cash-register nav-icon"></i>
+                                <p>Laporan Penjualan</p>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a href="/reports/purchases" class="nav-link">
+                                <i class="fas fa-shopping-bag nav-icon"></i>
+                                <p>Laporan Pembelian</p>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a href="/reports/profit" class="nav-link">
+                                <i class="fas fa-wallet nav-icon"></i>
+                                <p>Laporan Profit</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- ANALYTICS -->
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-chart-line"></i>
+                        <p>Analisis
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="/analytics/sales" class="nav-link">
+                                <i class="fas fa-chart-area nav-icon"></i>
+                                <p>Analisis Penjualan</p>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a href="/analytics/profit" class="nav-link">
+                                <i class="fas fa-coins nav-icon"></i>
+                                <p>Analisis Profit</p>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a href="/analytics/customer" class="nav-link">
+                                <i class="fas fa-user-friends nav-icon"></i>
+                                <p>Analisis Pelanggan</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- SETTING -->
+                <li class="nav-header">SYSTEM</li>
+                <li class="nav-item">
+                    <a href="/users" class="nav-link">
+                        <i class="nav-icon fas fa-users-cog"></i>
+                        <p>Manajemen User</p>
+                    </a>
                 </li>
 
             </ul>

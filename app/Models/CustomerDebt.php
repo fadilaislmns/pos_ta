@@ -9,8 +9,8 @@ class CustomerDebt extends Model
     protected $primaryKey = 'id';
 
     protected $fillable = [
-        'id',
         'sale_id',
+        'customer_id',
         'amount',
         'status',
         'due_date'
@@ -19,5 +19,9 @@ class CustomerDebt extends Model
     public function sale()
     {
         return $this->belongsTo(Sale::class, 'sale_id');
+    }
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
     }
 }

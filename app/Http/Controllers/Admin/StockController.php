@@ -12,7 +12,10 @@ class StockController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Stock::with('product');
+        $query = Stock::with([
+            'product',
+            'latestMovement'
+        ]);
 
         // SEARCH
         if ($request->search) {
@@ -37,9 +40,24 @@ class StockController extends Controller
 
     public function show($id)
     {
-        $stock = Stock::with('product')->findOrFail($id);
+        $stock = Stock::with([
+            'product',
+            'latestMovement'
+        ])->findOrFail($id);
 
-        return view('inventory.stock.detail', compact('stock'));
+        // HISTORI MOVEMENT
+        $movements = StockMovement::where(
+            'product_id',
+            $stock->product_id
+        )
+            ->latest()
+            ->take(10)
+            ->get();
+
+        return view(
+            'inventory.stock.detail',
+            compact('stock', 'movements')
+        );
     }
 
     public function update(Request $request, $id)
@@ -58,8 +76,7 @@ class StockController extends Controller
     public function movements(Request $request)
     {
         $query = StockMovement::with('product');
-
-        // SEARCH (nama produk / source)
+        // SEARCH
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('source', 'like', '%' . $request->search . '%')
@@ -68,7 +85,6 @@ class StockController extends Controller
                     });
             });
         }
-
         // FILTER TYPE
         if ($request->type) {
             $query->where('movement_type', $request->type);
@@ -79,7 +95,7 @@ class StockController extends Controller
             $query->where('product_id', $request->product_id);
         }
 
-        // FILTER TANGGAL
+        // FILTER DATE
         if ($request->date_from && $request->date_to) {
             $query->whereBetween('created_at', [
                 $request->date_from,
@@ -87,10 +103,20 @@ class StockController extends Controller
             ]);
         }
 
-        $movements = $query->latest()->paginate(10)->withQueryString();
+        // LIMIT
+        $limit = $request->limit ?? 10;
+
+        $movements = $query
+            ->latest()
+            ->paginate($limit)
+            ->withQueryString();
+
         $products = Product::all();
 
-        return view('inventory.stock.movement', compact('movements', 'products'));
+        return view(
+            'inventory.stock.movement',
+            compact('movements', 'products')
+        );
     }
 
     public function showMovement($id)

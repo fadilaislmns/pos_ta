@@ -3,7 +3,11 @@
     @php
         $breadcrumbs = \App\Helpers\BreadcrumbHelper::generate();
     @endphp
-
+    <li class="nav-item">
+        <a class="nav-link" data-widget="pushmenu" href="#">
+            <i class="fas fa-bars"></i>
+        </a>
+    </li>
     <div class="ml-3 font-weight-bold">
         @foreach ($breadcrumbs as $key => $crumb)
             @if ($key != count($breadcrumbs) - 1)
@@ -14,10 +18,12 @@
         @endforeach
     </div>
 
+
     <ul class="navbar-nav ml-auto">
         <li class="nav-item dropdown">
             <a class="nav-link d-flex align-items-center" data-toggle="dropdown" href="#">
-                <div style="width:30px;height:30px;border-radius:50%;background:#3b82f6;color:white;display:flex;align-items:center;justify-content:center;">
+                <div
+                    style="width:30px;height:30px;border-radius:50%;background:#3b82f6;color:white;display:flex;align-items:center;justify-content:center;">
                     U
                 </div>
                 <span>User</span>

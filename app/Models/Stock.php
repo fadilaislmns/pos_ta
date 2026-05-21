@@ -17,4 +17,12 @@ class Stock extends Model
     {
         return $this->belongsTo(Product::class);
     }
+    public function latestMovement()
+    {
+        return $this->hasOne(
+            StockMovement::class,
+            'product_id',
+            'product_id'
+        )->latestOfMany();
+    }
 }

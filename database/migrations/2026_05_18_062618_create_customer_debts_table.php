@@ -19,6 +19,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreignId('sale_id')->references('id')->on('sales');
+            $table->foreignId('customer_id')->references('id')->on('customers');
         });
     }
 

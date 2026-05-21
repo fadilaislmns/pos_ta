@@ -18,10 +18,6 @@
             </button>
         </div>
 
-        @if (session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
-
         <!-- TABLE -->
         <div class="card">
             <div class="card-body">
@@ -63,14 +59,10 @@
                                     </a>
 
                                     <!-- DELETE -->
-                                    <form action="{{ route('suppliers.destroy', $s->id) }}" method="POST"
-                                        style="display:inline;">
-                                        @csrf @method('DELETE')
-                                        <button class="action-icon text-danger border-0 bg-transparent"
-                                            onclick="return confirm('Hapus supplier ini?')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
+                                    <button class="action-icon text-danger border-0 bg-transparent btn-delete"
+                                        data-id="{{ $s->id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
 
                                 </td>
                             </tr>
@@ -115,34 +107,34 @@
                     </div>
 
                     <div class="modal-body">
-                       <div class="form-group">
-    <label>Nama Pemasok</label>
-    <input type="text" name="supplier_name" placeholder="Nama Pemasok"
-        value="{{ old('supplier_name') }}"
-        class="form-control 
-        @if($errors->any() && session('modal') == 'add') is-invalid @endif">
-
-    @if ($errors->any() && session('modal') == 'add')
-        <small class="text-danger">
-            {{ $errors->first('supplier_name') }}
-        </small>
-    @endif
-</div>
                         <div class="form-group">
-    <label>Lead Time (hari)</label>
-    <input type="number" name="lead_time" placeholder="Waktu Tunggu (Hari)"
-        value="{{ old('lead_time') }}"
-        class="form-control 
-        @if($errors->any() && session('modal') == 'add') is-invalid @endif">
-</div>
+                            <label>Nama Pemasok</label>
+                            <input type="text" name="supplier_name" placeholder="Nama Pemasok"
+                                value="{{ old('supplier_name') }}"
+                                class="form-control
+        @if ($errors->any() && session('modal') == 'add') is-invalid @endif">
 
-<div class="form-group">
-    <label>MOQ</label>
-    <input type="number" name="MOQ" placeholder="Minimum Quantity Order"
-        value="{{ old('MOQ') }}"
-        class="form-control 
-        @if($errors->any() && session('modal') == 'add') is-invalid @endif">
-</div>
+                            @if ($errors->any() && session('modal') == 'add')
+                                <small class="text-danger">
+                                    {{ $errors->first('supplier_name') }}
+                                </small>
+                            @endif
+                        </div>
+                        <div class="form-group">
+                            <label>Lead Time (hari)</label>
+                            <input type="number" name="lead_time" placeholder="Waktu Tunggu (Hari)"
+                                value="{{ old('lead_time') }}"
+                                class="form-control
+        @if ($errors->any() && session('modal') == 'add') is-invalid @endif">
+                        </div>
+
+                        <div class="form-group">
+                            <label>MOQ</label>
+                            <input type="number" name="MOQ" placeholder="Minimum Quantity Order"
+                                value="{{ old('MOQ') }}"
+                                class="form-control
+        @if ($errors->any() && session('modal') == 'add') is-invalid @endif">
+                        </div>
                     </div>
 
                     <div class="modal-footer">
@@ -167,32 +159,30 @@
                     </div>
 
                     <div class="modal-body">
-                       <div class="form-group">
-    <label>Nama Pemasok</label>
-    <input type="text" id="editName" name="supplier_name"
-        value="{{ session('modal') == 'edit' ? old('supplier_name') : '' }}"
-        class="form-control 
-        @if($errors->any() && session('modal') == 'edit') is-invalid @endif">
-
-    @if ($errors->any() && session('modal') == 'edit')
-        <small class="text-danger">
-            {{ $errors->first('supplier_name') }}
-        </small>
-    @endif
-</div>
                         <div class="form-group">
-    <label>Lead Time (hari)</label>
-    <input type="number" id="editLead" name="lead_time"
-        value="{{ session('modal') == 'edit' ? old('lead_time') : '' }}"
-        class="form-control">
-</div>
+                            <label>Nama Pemasok</label>
+                            <input type="text" id="editName" name="supplier_name"
+                                value="{{ session('modal') == 'edit' ? old('supplier_name') : '' }}"
+                                class="form-control
+        @if ($errors->any() && session('modal') == 'edit') is-invalid @endif">
 
-<div class="form-group">
-    <label>MOQ</label>
-    <input type="number" id="editMoq" name="MOQ"
-        value="{{ session('modal') == 'edit' ? old('MOQ') : '' }}"
-        class="form-control">
-</div>
+                            @if ($errors->any() && session('modal') == 'edit')
+                                <small class="text-danger">
+                                    {{ $errors->first('supplier_name') }}
+                                </small>
+                            @endif
+                        </div>
+                        <div class="form-group">
+                            <label>Lead Time (hari)</label>
+                            <input type="number" id="editLead" name="lead_time"
+                                value="{{ session('modal') == 'edit' ? old('lead_time') : '' }}" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label>MOQ</label>
+                            <input type="number" id="editMoq" name="MOQ"
+                                value="{{ session('modal') == 'edit' ? old('MOQ') : '' }}" class="form-control">
+                        </div>
 
                     </div>
 
@@ -260,27 +250,94 @@
                 $('#detailMoq').val('MOQ: ' + $(this).data('moq'));
             });
 
-            $('#modalAdd').on('hidden.bs.modal', function () {
-    $(this).find('input').val('');
-    $(this).find('.text-danger').remove();
-    $(this).find('.is-invalid').removeClass('is-invalid');
-});
+            // DELETE
+            $(document).on('click', '.btn-delete', function() {
+                let id = $(this).data('id');
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'warning',
+                    title: 'Hapus pemasok ini?',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Hapus',
+                    cancelButtonText: 'Batal',
+                    timerProgressBar: true,
+                    width: '360px'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/suppliers/' + id,
+                            type: 'POST',
+                            data: {
+                                _token: '{{ csrf_token() }}',
+                                _method: 'DELETE'
+                            },
+                            success: function(res) {
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'success',
+                                    title: 'Pemasok berhasil dihapus',
+                                    showConfirmButton: false,
+                                    timer: 3500,
+                                    timerProgressBar: true
+                                });
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 1000);
+                            },
+                            error: function() {
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'error',
+                                    title: 'Terjadi kesalahan',
+                                    showConfirmButton: false,
+                                    timer: 3500,
+                                    timerProgressBar: true
+                                });
+                            }
+                        });
+                    }
+                });
+            });
 
-$('#modalEdit').on('hidden.bs.modal', function () {
-    $(this).find('.text-danger').remove();
-    $(this).find('.is-invalid').removeClass('is-invalid');
-});
+            $('#modalAdd').on('hidden.bs.modal', function() {
+                $(this).find('input').val('');
+                $(this).find('.text-danger').remove();
+                $(this).find('.is-invalid').removeClass('is-invalid');
+            });
+
+            $('#modalEdit').on('hidden.bs.modal', function() {
+                $(this).find('.text-danger').remove();
+                $(this).find('.is-invalid').removeClass('is-invalid');
+            });
         </script>
         @if (session('modal') == 'add')
-<script>
-    $('#modalAdd').modal('show');
-</script>
-@endif
+            <script>
+                $('#modalAdd').modal('show');
+            </script>
+        @endif
 
-@if (session('modal') == 'edit')
-<script>
-    $('#modalEdit').modal('show');
-</script>
-@endif
+        @if (session('modal') == 'edit')
+            <script>
+                $('#modalEdit').modal('show');
+            </script>
+        @endif
+        @if (session('success'))
+            <script>
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: '{{ session('success') }}',
+                    showConfirmButton: false,
+                    timer: 3500,
+                    timerProgressBar: true
+                });
+            </script>
+        @endif
     @endpush
 @endsection

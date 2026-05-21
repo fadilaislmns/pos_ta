@@ -9,12 +9,15 @@ class Sale extends Model
     protected $primaryKey = 'id';
 
     protected $fillable = [
-        'id',
         'user_id',
         'customer_id',
         'sale_date',
+        'invoice_no',
+        'discount',
         'total_amount',
-        'payment_type'
+        'payment_type',
+        'paid_amount',
+        'change_amount'
     ];
 
     public function details()

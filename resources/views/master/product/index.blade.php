@@ -19,11 +19,6 @@
             </button>
         </div>
 
-        @if (session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
-
-
         <!-- TABLE -->
         <div class="card">
             <div class="card-body">
@@ -116,14 +111,14 @@
                         <label>Nama Produk</label>
                         <input type="text" name="product_name" class="form-control mb-2" placeholder="Nama produk"> --}}
                         <div class="form-group">
-    <label>Kode Produk</label>
-    <input type="text" name="product_code" class="form-control" placeholder="Kode Produk">
-</div>
+                            <label>Kode Produk</label>
+                            <input type="text" name="product_code" class="form-control" placeholder="Kode Produk">
+                        </div>
 
-<div class="form-group">
-    <label>Nama Produk</label>
-    <input type="text" name="product_name" class="form-control" placeholder="Nama Produk">
-</div>
+                        <div class="form-group">
+                            <label>Nama Produk</label>
+                            <input type="text" name="product_name" class="form-control" placeholder="Nama Produk">
+                        </div>
                         <label>Kategori</label>
                         <select name="category_id" class="form-control mb-2">
                             <option value="">-- Kategori --</option>
@@ -134,9 +129,9 @@
                         <label>Satuan</label>
                         <input type="text" name="unit" class="form-control mb-2" placeholder="Satuan">
                         <label>Harga Beli</label>
-                        <input type="number" name="purchase_price" class="form-control mb-2" placeholder="Harga beli">
+                        <input type="text" name="purchase_price" class="form-control mb-2" placeholder="Harga beli">
                         <label>Harga Jual</label>
-                        <input type="number" name="selling_price" class="form-control mb-2" placeholder="Harga jual">
+                        <input type="text" name="selling_price" class="form-control mb-2" placeholder="Harga jual">
 
                     </div>
 
@@ -182,9 +177,9 @@
                         <label>Satuan</label>
                         <input type="text" id="editUnit" name="unit" class="form-control mb-2">
                         <label>Harga Beli</label>
-                        <input type="number" id="editBuy" name="purchase_price" class="form-control mb-2">
+                        <input type="text" id="editBuy" name="purchase_price" class="form-control mb-2">
                         <label>Harga Jual</label>
-                        <input type="number" id="editSell" name="selling_price" class="form-control mb-2">
+                        <input type="text" id="editSell" name="selling_price" class="form-control mb-2">
 
                     </div>
 
@@ -244,195 +239,291 @@
         </div>
     </div>
 
-@push('scripts')
-<script>
-$(document).ready(function() {
+    @push('scripts')
+        <script>
+            $(document).ready(function() {
 
-    // =========================
-    // GLOBAL CSRF (WAJIB)
-    // =========================
-    $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-            'Accept': 'application/json'
-        }
-    });
-
-    // =========================
-    // SEARCH
-    // =========================
-    $('#searchProduct').on('keyup', function() {
-        let value = $(this).val().toLowerCase();
-        $('#productTable tr').filter(function() {
-            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-        });
-    });
-
-    // =========================
-    // RESET MODAL ADD
-    // =========================
-    function resetAddModal() {
-        let modal = $('#modalAdd');
-
-        modal.find('input, select').val('');
-        modal.find('select').prop('selectedIndex', 0);
-
-        modal.find('.alert').remove();
-        modal.find('.text-danger').remove();
-        modal.find('.is-invalid').removeClass('is-invalid');
-    }
-
-    $('button[data-target="#modalAdd"]').on('click', resetAddModal);
-    $('#modalAdd').on('hidden.bs.modal', resetAddModal);
-
-    // =========================
-    // ADD PRODUCT
-    // =========================
-    $(document).on('submit', '#formAdd', function(e) {
-        e.preventDefault();
-
-        let form = $(this);
-        let modal = $('#modalAdd');
-
-        $.post("{{ route('products.store') }}", form.serialize())
-        .done(function() {
-            modal.modal('hide');
-            location.reload();
-        })
-        .fail(function(xhr) {
-
-            modal.find('.alert').remove();
-            modal.find('.text-danger').remove();
-            modal.find('.is-invalid').removeClass('is-invalid');
-
-            if (xhr.status === 422) {
-
-                let errors = xhr.responseJSON.errors;
-
-                $.each(errors, function(field, messages) {
-                    let input = modal.find('[name="' + field + '"]');
-
-                    input.addClass('is-invalid');
-
-                    input.after(`
-                        <small class="text-danger">${messages[0]}</small>
-                    `);
+                // GLOBAL CSRF
+                $.ajaxSetup({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        'Accept': 'application/json'
+                    }
                 });
 
-            } else if (xhr.status === 419) {
+                // FORMAT ANGKA
+                function formatRupiah(angka) {
+                    let number_string = angka.replace(/[^,\d]/g, '').toString();
+                    let split = number_string.split(',');
+                    let sisa = split[0].length % 3;
+                    let rupiah = split[0].substr(0, sisa);
+                    let ribuan = split[0]
+                        .substr(sisa)
+                        .match(/\d{3}/gi);
+                    if (ribuan) {
+                        let separator = sisa ? '.' : '';
+                        rupiah += separator + ribuan.join('.');
+                    }
 
-                modal.find('.modal-body').prepend(`
-                    <div class="alert alert-danger">
-                        Session habis, refresh halaman sekali saja!
-                    </div>
-                `);
+                    return split[1] != undefined ?
+                        rupiah + ',' + split[1] :
+                        rupiah;
+                }
 
-            } else {
+                // FORMAT RUPIAH REALTIME
+                $(document).on('keyup',
+                    'input[name="purchase_price"], input[name="selling_price"], #editBuy, #editSell',
+                    function() {
+                        $(this).val(
+                            formatRupiah($(this).val())
+                        );
+                    }
+                );
 
-                modal.find('.modal-body').prepend(`
-                    <div class="alert alert-danger">
-                        Server error!
-                    </div>
-                `);
-            }
-        });
-    });
-
-    // =========================
-    // EDIT BUTTON
-    // =========================
-    $(document).on('click', '.btn-edit', function() {
-
-        let data = $(this).data('product');
-
-        $('#editCode').val(data.product_code);
-        $('#editName').val(data.product_name);
-        $('#editCategory').val(data.category_id);
-        $('#editUnit').val(data.unit);
-        $('#editBuy').val(data.purchase_price);
-        $('#editSell').val(data.selling_price);
-
-        $('#formEdit').attr('action', "/products/" + data.id);
-
-        $('#modalEdit .alert').remove();
-        $('#modalEdit .text-danger').remove();
-        $('#modalEdit .is-invalid').removeClass('is-invalid');
-
-        $('#modalEdit').modal('show');
-    });
-
-    // =========================
-    // RESET MODAL EDIT
-    // =========================
-    $('#modalEdit').on('hidden.bs.modal', function () {
-        let modal = $(this);
-
-        modal.find('.alert').remove();
-        modal.find('.text-danger').remove();
-        modal.find('.is-invalid').removeClass('is-invalid');
-    });
-
-    // =========================
-    // UPDATE PRODUCT
-    // =========================
-    $('#formEdit').on('submit', function(e) {
-        e.preventDefault();
-
-        let url = $(this).attr('action');
-        let modal = $('#modalEdit');
-
-        $.post(url, $(this).serialize() + '&_method=PUT')
-        .done(function(res) {
-
-            modal.modal('hide');
-
-            $('body').prepend(`
-                <div class="alert alert-success" style="
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    z-index: 9999;
-                ">
-                    ${res.message}
-                </div>
-            `);
-
-            setTimeout(() => $('.alert-success').fadeOut(), 2000);
-
-            location.reload();
-        })
-        .fail(function(xhr) {
-
-            modal.find('.alert').remove();
-            modal.find('.text-danger').remove();
-            modal.find('.is-invalid').removeClass('is-invalid');
-
-            if (xhr.status === 422) {
-
-                let errors = xhr.responseJSON.errors;
-
-                $.each(errors, function(field, messages) {
-                    let input = modal.find('[name="' + field + '"]');
-
-                    input.addClass('is-invalid');
-
-                    input.after(`
-                        <small class="text-danger">${messages[0]}</small>
-                    `);
+                // SEARCH
+                $('#searchProduct').on('keyup', function() {
+                    let value = $(this).val().toLowerCase();
+                    $('#productTable tr').filter(function() {
+                        $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+                    });
                 });
 
-            } else {
+                // RESET MODAL ADD
+                function resetAddModal() {
+                    let modal = $('#modalAdd');
 
-                modal.find('.modal-body').prepend(`
-                    <div class="alert alert-danger">
-                        Server error!
-                    </div>
-                `);
-            }
-        });
-    });
+                    modal.find('input, select').val('');
+                    modal.find('select').prop('selectedIndex', 0);
 
-});
-</script>
-@endpush
+                    modal.find('.alert').remove();
+                    modal.find('.text-danger').remove();
+                    modal.find('.is-invalid').removeClass('is-invalid');
+                }
+
+                $('button[data-target="#modalAdd"]').on('click', resetAddModal);
+                $('#modalAdd').on('hidden.bs.modal', resetAddModal);
+
+                // ADD PRODUCT
+                $(document).on('submit', '#formAdd', function(e) {
+                    e.preventDefault();
+                    let form = $(this);
+                    let modal = $('#modalAdd');
+                    let formData = form.serializeArray();
+                    formData.forEach(item => {
+                        if (item.name == 'purchase_price' ||
+                            item.name == 'selling_price') {
+                            item.value = item.value.replace(/\./g, '');
+                        }
+                    });
+                    $.post(
+                            "{{ route('products.store') }}",
+                            $.param(formData)
+                        )
+                        .done(function(res) {
+                            modal.modal('hide');
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'Produk berhasil ditambahkan',
+                                showConfirmButton: false,
+                                timer: 4000,
+                                timerProgressBar: true
+                            });
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1200);
+
+                        })
+                        .fail(function(xhr) {
+
+                            modal.find('.alert').remove();
+                            modal.find('.text-danger').remove();
+                            modal.find('.is-invalid').removeClass('is-invalid');
+
+                            if (xhr.status === 422) {
+
+                                let errors = xhr.responseJSON.errors;
+
+                                $.each(errors, function(field, messages) {
+                                    let input = modal.find('[name="' + field + '"]');
+
+                                    input.addClass('is-invalid');
+
+                                    input.after(`
+                        <small class="text-danger">${messages[0]}</small>
+                    `);
+                                });
+
+                            } else if (xhr.status === 419) {
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'warning',
+                                    title: 'Session habis, refresh halaman!',
+                                    showConfirmButton: false,
+                                    timer: 3000
+                                });
+
+                            } else {
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'error',
+                                    title: 'Server error!',
+                                    showConfirmButton: false,
+                                    timer: 3000
+                                });
+                            }
+                        });
+                });
+
+                // EDIT BUTTON
+                $(document).on('click', '.btn-edit', function() {
+
+                    let data = $(this).data('product');
+
+                    $('#editCode').val(data.product_code);
+                    $('#editName').val(data.product_name);
+                    $('#editCategory').val(data.category_id);
+                    $('#editUnit').val(data.unit);
+                    $('#editBuy').val(data.purchase_price);
+                    $('#editSell').val(data.selling_price);
+
+                    $('#formEdit').attr('action', "/products/" + data.id);
+
+                    $('#modalEdit .alert').remove();
+                    $('#modalEdit .text-danger').remove();
+                    $('#modalEdit .is-invalid').removeClass('is-invalid');
+
+                    $('#modalEdit').modal('show');
+                });
+
+                // RESET MODAL EDIT
+                $('#modalEdit').on('hidden.bs.modal', function() {
+                    let modal = $(this);
+
+                    modal.find('.alert').remove();
+                    modal.find('.text-danger').remove();
+                    modal.find('.is-invalid').removeClass('is-invalid');
+                });
+
+                // DETAIL PRODUCT
+                $(document).on('click', '.btn-detail', function() {
+                    $('#detailCode').val($(this).data('code'));
+                    $('#detailName').val($(this).data('name'));
+                    $('#detailCategory').val($(this).data('category'));
+                    $('#detailUnit').val($(this).data('unit'));
+                    $('#detailBuy').val(
+                        'Rp ' + Number($(this).data('buy'))
+                        .toLocaleString('id-ID')
+                    );
+                    $('#detailSell').val(
+                        'Rp ' + Number($(this).data('sell'))
+                        .toLocaleString('id-ID')
+                    );
+
+                });
+
+                // UPDATE PRODUCT
+                $('#formEdit').on('submit', function(e) {
+                    e.preventDefault();
+
+                    let url = $(this).attr('action');
+                    let modal = $('#modalEdit');
+
+                    let formData = $(this).serializeArray();
+                    formData.forEach(item => {
+                        if (item.name == 'purchase_price' ||
+                            item.name == 'selling_price') {
+                            item.value = item.value.replace(/\./g, '');
+                        }
+                    });
+                    formData.push({
+                        name: '_method',
+                        value: 'PUT'
+                    });
+                    $.post(
+                            url,
+                            $.param(formData)
+                        )
+                        .done(function(res) {
+                            modal.modal('hide');
+
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: res.message,
+                                showConfirmButton: false,
+                                timer: 4000,
+                                timerProgressBar: true
+                            });
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1200);
+                        })
+                        .fail(function(xhr) {
+
+                            modal.find('.alert').remove();
+                            modal.find('.text-danger').remove();
+                            modal.find('.is-invalid').removeClass('is-invalid');
+
+                            if (xhr.status === 422) {
+
+                                let errors = xhr.responseJSON.errors;
+
+                                $.each(errors, function(field, messages) {
+                                    let input = modal.find('[name="' + field + '"]');
+
+                                    input.addClass('is-invalid');
+
+                                    input.after(`
+                        <small class="text-danger">${messages[0]}</small>
+                    `);
+                                });
+
+                            } else {
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'error',
+                                    title: 'Server error!',
+                                    showConfirmButton: false,
+                                    timer: 3000
+                                });
+                            }
+                        });
+                });
+
+            });
+        </script>
+        @if (session('success'))
+            <script>
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: '{{ session('success') }}',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+            </script>
+        @endif
+
+        @if (session('error'))
+            <script>
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: '{{ session('error') }}',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+            </script>
+        @endif
+    @endpush
 @endsection

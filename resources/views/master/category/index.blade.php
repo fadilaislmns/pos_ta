@@ -13,11 +13,6 @@
             </div>
 
             <div class="d-flex">
-                <!-- FILTER -->
-                <button class="btn btn-light mr-2">
-                    <i class="fas fa-filter"></i> Filter
-                </button>
-
                 <!-- ADD -->
                 <button class="btn btn-dark" data-toggle="modal" data-target="#modalAdd">
                     <i class="fas fa-plus"></i> Tambah
@@ -26,10 +21,6 @@
             </div>
 
         </div>
-
-        @if (session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
 
         <div class="card">
             <div class="card-body">
@@ -68,12 +59,12 @@
 
                                     <!-- DELETE -->
                                     <form action="{{ route('categories.destroy', $c->id) }}" method="POST"
-                                        style="display:inline;">
+                                        class="delete-form" style="display:inline;">
                                         @csrf
                                         @method('DELETE')
 
-                                        <button class="action-icon text-danger border-0 bg-transparent"
-                                            onclick="return confirm('Hapus?')">
+                                        <button type="button"
+                                            class="action-icon text-danger border-0 bg-transparent btn-delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
@@ -121,25 +112,24 @@
 
                     <div class="modal-body">
 
-   
-    <div class="form-group">
-    <label>Nama Kategori *</label>
 
-   <input type="text" 
-       name="category_name" 
-       value="{{ old('category_name') }}"
-       class="form-control">
+                        <div class="form-group">
+                            <label>Nama Kategori *</label>
 
-    @if ($errors->any() && session('modal') == 'add')
-        <small class="text-danger">
-            {{ $errors->first() }}
-        </small>
-    @endif
-</div>
+                            <input type="text" name="category_name" value="{{ old('category_name') }}"
+                                class="form-control">
+
+                            @if ($errors->any() && session('modal') == 'add')
+                                <small class="text-danger">
+                                    {{ $errors->first() }}
+                                </small>
+                            @endif
+                        </div>
 
                         <div class="form-group">
                             <label>Deskripsi</label>
-<textarea name="description" class="form-control">{{ old('description') }}</textarea>                        </div>
+                            <textarea name="description" class="form-control">{{ old('description') }}</textarea>
+                        </div>
 
                     </div>
 
@@ -169,22 +159,20 @@
 
                         <div class="form-group">
                             <label>Nama Kategori</label>
-<input type="text" 
-    id="editName" 
-    name="category_name" 
-    value="{{ old('category_name') }}"
-    class="form-control 
-    @if($errors->any() && session('modal') == 'edit') is-invalid @endif">
-     @if ($errors->any() && session('modal') == 'edit')
-    <small class="text-danger">
-        {{ $errors->first() }}
-    </small>
-@endif
+                            <input type="text" id="editName" name="category_name" value="{{ old('category_name') }}"
+                                class="form-control
+    @if ($errors->any() && session('modal') == 'edit') is-invalid @endif">
+                            @if ($errors->any() && session('modal') == 'edit')
+                                <small class="text-danger">
+                                    {{ $errors->first() }}
+                                </small>
+                            @endif
                         </div>
 
                         <div class="form-group">
                             <label>Deskripsi</label>
-<textarea id="editDesc" name="description" class="form-control">{{ old('description') }}</textarea>                        </div>
+                            <textarea id="editDesc" name="description" class="form-control">{{ old('description') }}</textarea>
+                        </div>
 
                     </div>
 
@@ -230,18 +218,44 @@
         <script>
             $(document).on('click', '.btn-edit', function() {
 
-    let id = $(this).data('id');
+                let id = $(this).data('id');
 
-    $('#editName').val($(this).data('name'));
-    $('#editDesc').val($(this).data('desc'));
+                $('#editName').val($(this).data('name'));
+                $('#editDesc').val($(this).data('desc'));
 
-    $('#formEdit').attr('action', '/categories/' + id);
-});
+                $('#formEdit').attr('action', '/categories/' + id);
+            });
 
             $(document).on('click', '.btn-detail', function() {
 
                 $('#detailName').val($(this).data('name'));
                 $('#detailDesc').val($(this).data('desc'));
+            });
+
+            $(document).on('click', '.btn-delete', function(e) {
+                e.preventDefault();
+                let form =$(this).closest('form');
+                Swal.fire({
+                    title: 'Hapus kategori?',
+                    text: 'Data tidak bisa dikembalikan',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Hapus',
+                    cancelButtonText: 'Batal',
+                    width: '320px',
+                    padding: '1.5rem',
+                    customClass: {
+                        popup: 'rounded-lg',
+                        title: 'text-sm',
+                        htmlContainer: 'text-xs'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
             });
 
             $('#searchCategory').on('keyup', function() {
@@ -254,35 +268,61 @@
                 });
             });
 
-          $('#modalAdd').on('hidden.bs.modal', function () {
-    $(this).find('input[type="text"], textarea').val('');
-    $(this).find('.text-danger').remove();
-});
+            $('#modalAdd').on('hidden.bs.modal', function() {
+                $(this).find('input[type="text"], textarea').val('');
+                $(this).find('.text-danger').remove();
+            });
 
-$('button[data-target="#modalAdd"]').on('click', function () {
-    let modal = $('#modalAdd');
+            $('button[data-target="#modalAdd"]').on('click', function() {
+                let modal = $('#modalAdd');
 
-    modal.find('input[type="text"], textarea').val('');
-    modal.find('.text-danger').remove();
-    modal.find('.is-invalid').removeClass('is-invalid');
-});
+                modal.find('input[type="text"], textarea').val('');
+                modal.find('.text-danger').remove();
+                modal.find('.is-invalid').removeClass('is-invalid');
+            });
 
-$('#modalEdit').on('hidden.bs.modal', function () {
-    $(this).find('input[type="text"], textarea').val('');
-    $(this).find('.text-danger').remove();
-    $(this).find('.is-invalid').removeClass('is-invalid');
-});
+            $('#modalEdit').on('hidden.bs.modal', function() {
+                $(this).find('input[type="text"], textarea').val('');
+                $(this).find('.text-danger').remove();
+                $(this).find('.is-invalid').removeClass('is-invalid');
+            });
         </script>
-       @if (session('modal') == 'add')
-<script>
-    $('#modalAdd').modal('show');
-</script>
-@endif
+        @if (session('modal') == 'add')
+            <script>
+                $('#modalAdd').modal('show');
+            </script>
+        @endif
 
-@if (session('modal') == 'edit')
-<script>
-    $('#modalEdit').modal('show');
-</script>
-@endif
+        @if (session('modal') == 'edit')
+            <script>
+                $('#modalEdit').modal('show');
+            </script>
+        @endif
+
+        @if (session('success'))
+            <script>
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: '{{ session('success') }}',
+                    showConfirmButton: false,
+                    timer: 2500,
+                    timerProgressBar: true
+                });
+            </script>
+        @endif
+        @if (session('error'))
+            <script>
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: '{{ session('error') }}',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            </script>
+        @endif
     @endpush
 @endsection

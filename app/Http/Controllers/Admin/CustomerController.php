@@ -5,123 +5,93 @@ namespace App\Http\Controllers\Admin;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Validator;
 
 class CustomerController extends Controller
 {
-    // 🔹 GET ALL
+    // INDEX
     public function index()
     {
-        try {
-            $customers = Customer::all();
+        $customers = Customer::latest()->get();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Data customer berhasil diambil',
-                'data' => $customers
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengambil data customer',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return view('master.customer.index', compact('customers'));
     }
 
-    // 🔹 STORE
+    // STORE
     public function store(Request $request)
     {
         try {
+
             $request->validate([
-                'customer_name' => 'required|string|max:100',
-                'phone' => 'nullable|string|max:20'
+                'customer_name' => 'required|max:100',
+                'phone' => 'nullable|numeric|digits_between:10,15|unique:customers,phone'
+            ], [
+                'phone.unique' => 'No HP sudah digunakan',
+                'phone.numeric' => 'No HP harus angka',
+                'phone.digits_between' => 'No HP harus 10-15 digit'
             ]);
 
-            $customer = Customer::create($request->all());
+            $customer = Customer::create([
+                'customer_name' => $request->customer_name,
+                'phone' => $request->phone
+            ]);
 
             return response()->json([
-                'success' => true,
+                'status' => 'success',
                 'message' => 'Customer berhasil ditambahkan',
                 'data' => $customer
-            ], 201);
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
 
-        } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Gagal menambahkan customer',
-                'error' => $e->getMessage()
+                'errors' => $e->validator->errors()
+            ], 422);
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'message' => $e->getMessage()
             ], 500);
         }
     }
 
-    // 🔹 SHOW
-    public function show($id)
-    {
-        try {
-            $customer = Customer::findOrFail($id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Detail customer berhasil diambil',
-                'data' => $customer
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Customer tidak ditemukan',
-                'error' => $e->getMessage()
-            ], 404);
-        }
-    }
-
-    // 🔹 UPDATE (STRICT)
+    // UPDATE
     public function update(Request $request, $id)
     {
-        try {
-            $customer = Customer::findOrFail($id);
+        $validator = Validator::make($request->all(), [
+            'customer_name' => 'required|max:100',
+            'phone' =>
+            'nullable|numeric|digits_between:10,15|unique:customers,phone,' . $id
+        ], [
+            'phone.unique' => 'No HP sudah digunakan',
+            'phone.numeric' => 'No HP harus angka',
+            'phone.digits_between' => 'No HP harus 10-15 digit'
+        ]);
 
-            $request->validate([
-                'customer_name' => 'required|string|max:100',
-                'phone' => 'nullable|string|max:20'
-            ]);
-
-            $customer->update($request->all());
-
+        if ($validator->fails()) {
             return response()->json([
-                'success' => true,
-                'message' => 'Customer berhasil diupdate',
-                'data' => $customer
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal update customer',
-                'error' => $e->getMessage()
-            ], 500);
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
         }
+
+        $customer = Customer::findOrFail($id);
+        $customer->update([
+            'customer_name' => $request->customer_name,
+            'phone' => $request->phone
+        ]);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Customer berhasil diupdate'
+        ]);
     }
 
-    // 🔹 DELETE
+    // DELETE
     public function destroy($id)
     {
-        try {
-            $customer = Customer::findOrFail($id);
-            $customer->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Customer berhasil dihapus'
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menghapus customer',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        Customer::findOrFail($id)->delete();
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Customer berhasil dihapus'
+        ]);
     }
 }

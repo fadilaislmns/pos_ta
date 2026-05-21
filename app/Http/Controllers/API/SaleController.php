@@ -1,7 +1,9 @@
 <?php
+
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\CustomerDebt;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleDetail;
@@ -15,68 +17,93 @@ class SaleController extends Controller
 {
     // GET LIST (INDEX)
     public function index(Request $request)
-{
-    $query = Sale::with(['user', 'customer']);
+    {
+        $query = Sale::with(['user', 'customer']);
 
-    if ($request->filled('search')) {
-        $query->where(function ($q) use ($request) {
-            $q->where('id', 'like', '%' . $request->search . '%')
-              ->orWhereHas('customer', function ($q2) use ($request) {
-                  $q2->where('customer_name', 'like', '%' . $request->search . '%');
-              });
-        });
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('invoice_no', 'like', '%' . $request->search . '%')
+                    ->orWhereHas('customer', function ($q2) use ($request) {
+                        $q2->where('customer_name', 'like', '%' . $request->search . '%');
+                    });
+            });
+        }
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('sale_date', [
+                $request->start_date,
+                $request->end_date
+            ]);
+        }
+
+        if ($request->filled('payment_type')) {
+            $query->where('payment_type', $request->payment_type);
+        }
+
+        $limit = $request->limit ?? 10;
+
+        $sales = $query->latest()->paginate($limit);
+
+        return response()->json($sales);
     }
 
-    if ($request->filled('start_date') && $request->filled('end_date')) {
-        $query->whereBetween('sale_date', [
-            $request->start_date,
-            $request->end_date
-        ]);
-    }
-
-    if ($request->filled('payment_type')) {
-        $query->where('payment_type', $request->payment_type);
-    }
-
-    $limit = $request->limit ?? 10;
-
-    $sales = $query->latest()->paginate($limit);
-
-    return response()->json($sales);
-}
     // STORE (TRANSAKSI)
     public function store(Request $request)
     {
         DB::beginTransaction();
 
         try {
+
+            // VALIDATION
             $request->validate([
                 'sale_date' => 'required|date',
-                'payment_type' => 'required|in:cash,credit',
+                'payment_type' => 'required|in:cash,qris,card,credit',
                 'user_id' => 'required|exists:users,id',
                 'customer_id' => 'nullable|exists:customers,id',
+                'discount' => 'nullable|numeric|min:0',
                 'items' => 'required|array|min:1',
                 'items.*.product_id' => 'required|exists:products,id',
                 'items.*.quantity' => 'required|integer|min:1'
+
             ]);
 
+            // CREDIT WAJIB CUSTOMER
+            if (
+                $request->payment_type == 'credit'
+                && !$request->customer_id
+            ) {
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                    'Customer wajib dipilih untuk pembayaran hutang'
+                ], 422);
+            }
             $total = 0;
             $details = [];
 
+            // HITUNG TOTAL
             foreach ($request->items as $item) {
-
-                $product = Product::findOrFail($item['product_id']);
-
-                $stock = Stock::where('product_id', $item['product_id'])->first();
-
-                if (!$stock || $stock->current_stock < $item['quantity']) {
-                    throw new \Exception("Stok tidak cukup untuk produk {$product->name}");
+                $product = Product::findOrFail(
+                    $item['product_id']
+                );
+                $stock = Stock::where(
+                    'product_id',
+                    $item['product_id']
+                )->first();
+                // VALIDASI STOK
+                if (
+                    !$stock ||
+                    $stock->current_stock < $item['quantity']
+                ) {
+                    throw new \Exception(
+                        "Stok tidak cukup untuk produk {$product->product_name}"
+                    );
                 }
 
-                $subtotal = $product->selling_price * $item['quantity'];
-
+                $subtotal =
+                    $product->selling_price *
+                    $item['quantity'];
                 $total += $subtotal;
-
                 $details[] = [
                     'product' => $product,
                     'quantity' => $item['quantity'],
@@ -84,21 +111,37 @@ class SaleController extends Controller
                 ];
             }
 
-            // GENERATE INVOICE
-            $invoice = 'INV-' . date('Ymd') . '-' . strtoupper(Str::random(4));
+            // DISKON
+            $discount = $request->discount ?? 0;
+            $totalAfterDiscount = $total - $discount;
+            if ($totalAfterDiscount < 0) {
+                $totalAfterDiscount = 0;
+            }
 
-            // SIMPAN SALE
+            // GENERATE INVOICE
+            $invoice =
+                'INV-' .
+                date('Ymd') .
+                '-' .
+                strtoupper(Str::random(4));
+
+            // CREATE SALE
             $sale = Sale::create([
                 'sale_date' => $request->sale_date,
-                'total_amount' => $total,
+                'invoice_no' => $invoice,
+                'discount' => $discount,
+                'total_amount' => $totalAfterDiscount,
                 'payment_type' => $request->payment_type,
+                'paid_amount' => $request->paid_amount ?? 0,
+                'change_amount' => $request->payment_type == 'cash'
+                ? max(0, ($request->paid_amount ?? 0) - $totalAfterDiscount) : 0,
                 'user_id' => $request->user_id,
                 'customer_id' => $request->customer_id,
+
             ]);
 
-            // SIMPAN DETAIL + UPDATE STOK
+            // CREATE SALE DETAIL
             foreach ($details as $d) {
-
                 SaleDetail::create([
                     'sale_id' => $sale->id,
                     'product_id' => $d['product']->id,
@@ -107,11 +150,18 @@ class SaleController extends Controller
                     'subtotal' => $d['subtotal']
                 ]);
 
-                // KURANGI STOK
-                $stock = Stock::where('product_id', $d['product']->id)->first();
-                $stock->decrement('current_stock', $d['quantity']);
+                // UPDATE STOCK
+                $stock = Stock::where(
+                    'product_id',
+                    $d['product']->id
+                )->first();
 
-                // LOG MOVEMENT
+                $stock->decrement(
+                    'current_stock',
+                    $d['quantity']
+                );
+
+                // STOCK MOVEMENT
                 StockMovement::create([
                     'product_id' => $d['product']->id,
                     'movement_type' => 'OUT',
@@ -120,18 +170,39 @@ class SaleController extends Controller
                 ]);
             }
 
+            // CREATE CUSTOMER DEBT
+            if ($request->payment_type == 'credit') {
+                $paidAmount = $request->paid_amount ?? 0;
+                $remainingDebt = $totalAfterDiscount - $paidAmount;
+
+                if ($remainingDebt < 0) {
+                    $remainingDebt = 0;
+                }
+
+                CustomerDebt::create([
+                    'sale_id' => $sale->id,
+                    'customer_id' => $request->customer_id,
+                    'amount' => $remainingDebt,
+                    'status' => $remainingDebt > 0 ? 'active' : 'paid',
+                    'due_date' => now()->addDays(30)
+                ]);
+            }
+
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Transaksi berhasil',
-                'data' => $sale->load('details.product')
+                'data' =>
+                $sale->load(
+                    'details.product',
+                    'customer',
+                    'debt'
+                )
             ], 201);
-
         } catch (\Exception $e) {
 
             DB::rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'Transaksi gagal',

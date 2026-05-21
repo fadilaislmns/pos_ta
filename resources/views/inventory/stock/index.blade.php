@@ -7,23 +7,12 @@
         <div class="mb-3">
             <h3 class="font-weight-bold mb-2">Stock Inventory</h3>
 
-            {{-- <div class="d-flex justify-content-between">
-
-                <!-- SEARCH -->
-                <input type="text" id="searchStock" class="form-control" placeholder="Search product..."
-                    style="width: 300px;">
-
-                <!-- RIGHT -->
-                <a href="{{ route('stocks.movements') }}" class="btn btn-dark">
-                    <i class="fas fa-exchange-alt"></i> Stock Movements
-                </a>
-
-            </div> --}}
             <div class="d-flex justify-content-between align-items-center">
                 <input type="text" id="searchStock" class="form-control" placeholder="Search product..."
                     style="width: 300px;">
                 <div class="d-flex">
-                    <button type="button" class="btn btn-outline-dark mr-2" id="btnFilter"> <i class="fas fa-filter"></i>
+                    <button type="button" class="btn btn-outline-dark mr-2" id="btnFilter">
+                        <i class="fas fa-filter"></i>
                         Filter
                     </button>
 
@@ -46,6 +35,8 @@
                             <th>Stok Saat ini</th>
                             <th>Safety Stok</th>
                             <th>ROP</th>
+                            <th>Last Movement</th>
+                            <th>Type</th>
                             <th>Status</th>
                             <th width="100">Aksi</th>
                         </tr>
@@ -59,7 +50,27 @@
                                 <td>{{ $s->current_stock }}</td>
                                 <td>{{ $s->safety_stock }}</td>
                                 <td>{{ $s->reorder_point }}</td>
-
+                                <!-- LAST MOVEMENT -->
+                                <td>
+                                    @if ($s->latestMovement)
+                                        {{ $s->latestMovement->created_at->format('d/m/Y') }}
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td>
+                                    @if ($s->latestMovement)
+                                        @if ($s->latestMovement->movement_type == 'in')
+                                            <span class="badge badge-success">IN</span>
+                                        @else
+                                            <span class="badge badge-danger">
+                                                OUT
+                                            </span>
+                                        @endif
+                                    @else
+                                        -
+                                    @endif
+                                </td>
                                 <td>
                                     @if ($s->current_stock <= $s->reorder_point)
                                         <span class="badge badge-danger">Peringatan</span>
@@ -77,10 +88,9 @@
                                     </i>
 
                                     <!-- DETAIL -->
-                                    <i class="fas fa-eye text-info btnDetail" style="cursor:pointer;"
-                                        data-name="{{ $s->product->product_name }}" data-stock="{{ $s->current_stock }}"
-                                        data-safety="{{ $s->safety_stock }}" data-rop="{{ $s->reorder_point }}">
-                                    </i>
+                                    <a href="{{ route('stocks.show', $s->id) }}" class="text-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
                                 </td>
                             </tr>
                         @endforeach
@@ -164,34 +174,15 @@
         </div>
     </div>
 
-    {{-- MODAL DETAIL --}}
-    <div class="modal fade" id="modalDetail">
-        <div class="modal-dialog">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5>Detail Stock</h5>
-                </div>
-
-                <div class="modal-body">
-
-                    <p><b>Nama Produk:</b> <span id="dName"></span></p>
-                    <p><b>Jumlah Stok saat ini:</b> <span id="dStock"></span></p>
-                    <p><b>Safety Stock:</b> <span id="dSafety"></span></p>
-                    <p><b>ROP:</b> <span id="dROP"></span></p>
-
-                </div>
-
-            </div>
-        </div>
-    </div>
-
     <div id="filterPanel" class="filter-panel">
 
-        <div class="filter-header">
+        <div class="filter-header d-flex justify-content-between align-items-center">
             <h5>Filter</h5>
-            <button type="button" id="closeFilter">&times;</button>
+            <button type="button" id="closeFilter">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
+
 
         <form method="GET">
 
@@ -267,14 +258,6 @@
 
             });
 
-            $('.btnDetail').click(function() {
-                $('#dName').text($(this).data('name'));
-                $('#dStock').text($(this).data('stock'));
-                $('#dSafety').text($(this).data('safety'));
-                $('#dROP').text($(this).data('rop'));
-
-                $('#modalDetail').modal('show');
-            });
         </script>
     @endpush
 @endsection

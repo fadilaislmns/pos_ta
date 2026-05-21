@@ -63,9 +63,22 @@
                 </table>
 
             </div>
-
-            <div class="card-footer">
-                {{ $movements->links() }}
+            <div class="card-footer d-flex justify-content-between align-items-center flex-wrap">
+                <!-- LEFT -->
+                <div class="d-flex align-items-center">
+                    <span class="mr-2">Show</span>
+                    <select class="form-control form-control-sm mr-2" style="width:80px;" onchange="changeLimit(this.value)">
+                        <option value="10" {{ request('limit') == 10 ? 'selected' : '' }}>10</option>
+                        <option value="25" {{ request('limit') == 25 ? 'selected' : '' }}>25</option>
+                        <option value="50" {{ request('limit') == 50 ? 'selected' : '' }}>50</option>
+                    </select>
+                    <span>dari {{ $movements->total() }} data
+                    </span>
+                </div>
+                <!-- RIGHT -->
+                <div>
+                    {{ $movements->links('pagination::bootstrap-4') }}
+                </div>
             </div>
         </div>
 
@@ -78,9 +91,7 @@
         </div>
 
         <form method="GET">
-
             <div class="filter-body">
-
                 <!-- PRODUCT -->
                 <h6>Nama Produk</h6>
                 <select name="product_id" class="form-control mb-3">
@@ -116,6 +127,20 @@
         </form>
 
     </div>
+    @push('styles')
+        <style>
+            .pagination {
+                margin-bottom: 0 !important;
+            }
+            .page-item.active .page-link {
+                background-color: #007bff;
+                border-color: #007bff;
+            }
+            .page-link {
+                color: #6c757d;
+            }
+        </style>
+    @endpush
     @push('scripts')
         <script>
             $(document).ready(function() {
@@ -136,6 +161,17 @@
                     $(this).closest('form').submit();
                 }, 500);
             });
+
+            function changeLimit(limit) {
+
+                let url =
+                    new URL(window.location.href);
+
+                url.searchParams.set('limit', limit);
+
+                window.location.href = url;
+
+            }
         </script>
     @endpush
 @endsection

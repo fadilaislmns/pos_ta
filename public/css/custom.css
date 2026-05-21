@@ -65,9 +65,6 @@
 }
 
 /* ================= CONTENT ================= */
-.content-wrapper {
-    margin-left: 250px;
-}
 
 html, body {
     height: 100%;
@@ -136,3 +133,308 @@ html, body {
     font-weight: 500;
     z-index: 9999;
 }
+
+/* ================= POS ================= */
+
+.qty-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.qty-btn {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: #f1f5f9;
+    border-radius: 6px;
+    transition: 0.2s;
+}
+
+.qty-btn:hover {
+    background: #dbeafe;
+}
+
+.qty-number {
+    min-width: 20px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.btn-delete {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #ef4444;
+    color: white;
+    border-radius: 6px;
+    transition: 0.2s;
+}
+
+.btn-delete:hover {
+    background: #dc2626;
+}
+
+.payment-btn {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+    background: white;
+}
+
+.payment-btn:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.payment-btn.active {
+    border: 2px solid #3b82f6;
+    background: #dbeafe;
+}
+
+#resultBox {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#resultBox .list-group-item {
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+#resultBox .list-group-item:hover {
+    background: #eff6ff;
+}
+
+.card {
+    border-radius: 14px;
+}
+
+.card-header {
+    font-weight: 600;
+}
+
+#total {
+    font-size: 32px;
+    font-weight: bold;
+}
+
+#kembali {
+    font-weight: bold;
+    color: #16a34a;
+}
+
+.table td,
+.table th {
+    vertical-align: middle;
+}
+
+/* FILTER PANEL */
+.filter-panel{
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 350px;
+    height: 100%;
+    background: white;
+    z-index: 9999;
+    transition: .3s;
+    box-shadow: -5px 0 20px rgba(0,0,0,.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-panel.active{
+    right: 0;
+}
+
+.filter-header{
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.filter-body{
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.filter-footer{
+    padding: 20px;
+    border-top: 1px solid #eee;
+}
+
+/* FILTER LABEL */
+.filter-label{
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* RADIO GROUP */
+.filter-radio-group{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* RADIO ITEM */
+.filter-radio{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 400;
+    color: #4b5563;
+    cursor: pointer;
+    margin: 0;
+}
+
+/* RADIO INPUT */
+.filter-radio input[type="radio"]{
+    width: 16px;
+    height: 16px;
+    accent-color: #2563eb;
+    cursor: pointer;
+
+}
+
+/* HOVER */
+.filter-radio:hover{
+    color: #111827;
+}
+
+.filter-panel .form-group{
+    margin-bottom: 16px;
+}
+
+/* PRINT AREA */
+.invoice-print-area{
+    width: 300px;
+    margin: auto;
+    background: white;
+    padding: 12px;
+    border: 1px solid #ddd;
+    font-size: 12px;
+    color: #111;
+    line-height: 1.2;
+}
+
+/* HEADER */
+.invoice-print-area h4{
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.invoice-print-area small{
+    font-size: 11px;
+}
+
+.invoice-print-area hr{
+    margin: 8px 0;
+    border-top: 1px dashed #999;
+}
+
+/* INFO TABLE */
+.invoice-print-area .table-borderless td{
+    padding: 2px 0 !important;
+    font-size: 12px;
+    vertical-align: top;
+}
+
+/* ITEM TABLE */
+.invoice-print-area table{
+    margin-bottom: 6px;
+}
+
+.invoice-print-area table th,
+.invoice-print-area table td{
+    padding: 4px 2px !important;
+    font-size: 11px;
+}
+
+.invoice-print-area table thead th{
+    border-bottom: 1px dashed #999;
+}
+
+/* TOTAL */
+.invoice-print-area .d-flex{
+    margin-bottom: 2px;
+}
+
+/* FOOTER */
+.invoice-print-area .text-center{
+    line-height: 1.3;
+}
+
+
+/* PRINT */
+@media print{
+    body *{
+        visibility: hidden;
+    }
+    #printArea,
+    #printArea *{
+        visibility: visible;
+    }
+    #printArea{
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 80mm;
+        border: none;
+        box-shadow: none;
+    }
+}
+
+/* DASHBOARD ICON */
+.dashboard-icon{
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+/* CARD */
+.card{
+    border-radius: 16px;
+}
+
+/* TABLE */
+.table td{
+    vertical-align: middle;
+}
+
+/* DASHBOARD */
+.content-wrapper{
+    min-height: 100vh;
+    background: #f5f7fb;
+}
+
+/* CARD */
+.card{
+    border-radius: 18px;
+}
+
+/* RESPONSIVE */
+.dashboard-card{
+    height: 100%;
+}
+.card{
+    transition: .2s ease;
+}
+
+.card:hover{
+    transform: translateY(-2px);
+}
+

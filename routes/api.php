@@ -51,9 +51,9 @@ Route::middleware(['auth:sanctum', 'role:super_admin,admin'])->group(function ()
 });
 
 
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::apiResource('customers', CustomerController::class);
-});
+// Route::middleware(['auth:sanctum'])->group(function () {
+//     Route::apiResource('customers', CustomerController::class);
+// });
 
 
 // Route::middleware(['auth:sanctum', 'role:kasir,admin,super_admin'])->group(function () {
