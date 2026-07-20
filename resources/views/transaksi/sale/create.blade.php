@@ -44,6 +44,7 @@
                                 <tr>
                                     <th>Produk</th>
                                     <th>Harga</th>
+                                    <th>Diskon</th>
                                     <th width="130">Qty</th>
                                     <th>Subtotal</th>
                                     <th></th>
@@ -65,11 +66,13 @@
                 </div>
 
                 <!-- INFO TRANSAKSI -->
-                <div class="card mt-3 p-3">
+                <div class="card mt-3 p-3" style="overflow: visible;">
                     <div class="row">
                         <div class="col-md-4">
                             <small>No Transaksi</small>
-                            <div><b>AUTO</b></div>
+                            <div>
+                                <b id="invoiceNo">{{ $invoiceNo }}</b>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <small>Tanggal</small>
@@ -77,11 +80,13 @@
                         </div>
                         <div class="col-md-4">
                             <small>Kasir</small>
-                            <div><b>User</b></div>
+                            <div>
+                                <b>{{ auth()->user()->name }}</b>
+                            </div>
                         </div>
                     </div>
                     <!-- CUSTOMER -->
-                    <div class="mt-3">
+                    <div class="mt-3 position-relative customer-wrapper">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="mb-0">
                                 Customer
@@ -105,13 +110,16 @@
                             <!-- RESULT -->
                             <div id="customerResult" class="list-group position-absolute w-100 shadow"
                                 style="
-                                        z-index:999;
-                                        display:none;
-                                        max-height:250px;
-                                        overflow:auto;
-                                        top:100%;
-                                        left:0;
-                                    ">
+                                z-index:99999;
+                                display:none;
+                                max-height:250px;
+                                overflow:auto;
+                                top:100%;
+                                left:0;
+                                border-radius:12px;
+                                background:white;
+                                border:1px solid #e5e7eb;
+                            ">
                             </div>
 
                         </div>
@@ -119,26 +127,12 @@
                 </div>
 
                 <!-- METODE -->
-                <div class="mt-3">
+                <div class="mt-3 position-relative" style="z-index:1;">
                     <div class="row text-center g-2">
                         <div class="col">
                             <div class="payment-btn active" onclick="setPayment('cash', this)">
                                 <i class="fas fa-money-bill-wave"></i><br>
                                 Cash
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="payment-btn" onclick="setPayment('qris', this)">
-                                <i class="fas fa-qrcode"></i><br>
-                                QRIS
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="payment-btn" onclick="setPayment('card', this)">
-                                <i class="fas fa-credit-card"></i><br>
-                                Card
                             </div>
                         </div>
 
@@ -160,16 +154,24 @@
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-2">
-                            <span>Subtotal</span>
-                            <span id="subtotal">Rp 0</span>
+                            <span>Subtotal Produk</span>
+                            <span id="subtotalProduk">Rp 0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Diskon Produk</span>
+                            <span class="text-success" id="productDiscount">
+                                Rp 0
+                            </span>
                         </div>
                         <div class="mb-2">
-                            <label>Diskon</label>
+                            <label>Diskon Transaksi</label>
                             <input type="text" id="discount" class="form-control" value="0">
                         </div>
                         <div class="d-flex justify-content-between mb-2">
-                            <span>Potongan</span>
-                            <span id="discountText">Rp 0</span>
+                            <span>Diskon Transaksi</span>
+                            <span class="text-danger" id="discountText">
+                                Rp 0
+                            </span>
                         </div>
                         <hr>
                         <h3 class="text-primary fw-bold text-end">
@@ -190,24 +192,19 @@
                         <button class="btn btn-primary w-100 mt-4" onclick="checkout()">
                             Proses Pembayaran
                         </button>
-
                     </div>
-
                 </div>
-
             </div>
-
         </div>
     </div>
-    //MODAL CUSTOMER
+
+    {{-- MODAL CUSTOMER --}}
     <div class="modal fade" id="modalCustomer" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <!-- HEADER -->
                 <div class="modal-header">
-                    <h5 class="modal-title">
-                        Tambah Customer
-                    </h5>
+                    <h5 class="modal-title">Tambah Pelanggan</h5>
 
                     <button type="button" class="close" data-dismiss="modal">
                         <span>&times;</span>
@@ -219,9 +216,10 @@
                     <div class="modal-body">
                         <div class="form-group">
                             <label>
-                                Nama Customer
+                                Nama Pelanggan
                             </label>
-                            <input type="text" name="customer_name" class="form-control" placeholder="Nama customer">
+                            <input type="text" name="customer_name" class="form-control"
+                                placeholder="Nama pelanggan">
                             <small class="text-danger error-name"></small>
                         </div>
 
@@ -229,7 +227,7 @@
                             <label>
                                 No HP
                             </label>
-                            <input type="text" name="phone" class="form-control" placeholder="08xxxx">
+                            <input type="text" name="phone" class="form-control" placeholder="08xxxxxxxxxx">
                             <small class="text-danger error-phone"></small>
                         </div>
                     </div>
@@ -261,6 +259,7 @@
 
             let allProducts = @json($products);
             let products = [...allProducts];
+            console.log(products);
 
             let cart = [];
             let paymentType = 'cash';
@@ -303,14 +302,27 @@
                     onclick="selectProduct(${p.id})">
 
                     <div class="d-flex justify-content-between">
-                        <span>${p.product_name}</span>
+                        <div>
+                            <div class="fw-bold"> ${p.product_name} </div>
+                            <small class="${p.current_stock == 0
+                                    ? 'text-danger'
+                                    : p.current_stock <= p.reorder_point
+                                        ? 'text-warning'
+                                        : 'text-success'
+                            }">
+                                ${ p.current_stock == 0
+                                        ? 'Stok Habis'
+                                        : 'Stok : ' + p.current_stock
+                                }
+                            </small>
+                        </div>
+
                         <small class="text-muted">
                             ${rupiah(p.selling_price)}
                         </small>
                     </div>
-
                 </a>
-            `).join('');
+                `).join('');
 
                 box.style.display =
                     filtered.length ? 'block' : 'none';
@@ -318,21 +330,55 @@
 
             // PILIH PRODUK
             function selectProduct(id) {
-
                 let p = products.find(x => x.id === id);
-
                 if (!p) return;
+                if (p.current_stock <= 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Stok Habis',
+                        text: `${p.product_name} tidak tersedia`
+                    });
+                    return;
+                }
 
                 let found = cart.find(x => x.id === id);
 
                 if (found) {
+                    if (found.qty >= p.current_stock) {
+                        Toast.fire({
+                            icon: 'warning',
+                            title: 'Stok tidak mencukupi'
+                        });
+                        return;
+                    }
                     found.qty++;
                 } else {
+                    let finalPrice = Number(p.selling_price);
+                    let discountAmount = 0;
+                    let today = new Date().toISOString().slice(0, 10);
+                    if (
+                        p.discount_active == 1 &&
+                        p.discount_start <= today &&
+                        p.discount_end >= today
+                    ) {
+
+                        if (p.discount_type === 'percent') {
+                            discountAmount = (finalPrice * p.discount_value) / 100;
+                            finalPrice -= discountAmount;
+                        } else {
+                            discountAmount = Number(p.discount_value);
+                            finalPrice -= discountAmount;
+                        }
+                    }
+
                     cart.push({
                         id: p.id,
                         name: p.product_name,
-                        price: Number(p.selling_price),
-                        qty: 1
+                        original_price: Number(p.selling_price),
+                        price: finalPrice,
+                        discount_amount: discountAmount,
+                        qty: 1,
+                        stock: p.current_stock
                     });
                 }
 
@@ -455,8 +501,7 @@
                 let id = this.value;
 
                 products = id ?
-                    allProducts.filter(p => p.category_id == id) :
-                    [...allProducts];
+                    allProducts.filter(p => p.category_id == id) : [...allProducts];
             });
 
             // RENDER CART
@@ -466,46 +511,31 @@
 
                 let subtotal = 0;
                 let totalQty = 0;
+                let subtotalProduk = 0;
+                let totalProductDiscount = 0;
 
                 cart.forEach((item, index) => {
-
+                    let hargaNormal = item.original_price * item.qty;
+                    let diskonProduk = item.discount_amount * item.qty;
                     let sub = item.price * item.qty;
-
+                    subtotalProduk += hargaNormal;
+                    totalProductDiscount += diskonProduk;
                     subtotal += sub;
                     totalQty += item.qty;
-
                     html += `
                 <tr>
-
                     <td>${item.name}</td>
-
-                    <td>${rupiah(item.price)}</td>
-
+                    <td>${rupiah(item.original_price)}</td>
+                    <td>${item.discount_amount > 0 ? rupiah(item.discount_amount) : '-'}</td>
                     <td>
                         <div class="qty-box">
-
-                            <button class="qty-btn"
-                                onclick="chg(${index},-1)">
-                                -
-                            </button>
-
-                            <div class="qty-number">
-                                ${item.qty}
-                            </div>
-
-                            <button class="qty-btn"
-                                onclick="chg(${index},1)">
-                                +
-                            </button>
-
+                            <input type="number" class="form-control text-center qty-input" value="${item.qty}" min="1"
+                                max="${item.stock}" onchange="changeQty(${index}, this.value)" onkeyup="changeQty(${index}, this.value)">
                         </div>
                     </td>
-
                     <td>${rupiah(sub)}</td>
-
                     <td>
-                        <button class="btn-delete"
-                            onclick="del(${index})">
+                        <button class="btn-delete" onclick="del(${index})">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
@@ -514,12 +544,9 @@
                 });
 
                 // DISKON
-                let discount =
-                    parseInt(document.getElementById('discount')?.value || 0);
-
+                let discount = parseInt(document.getElementById('discount')?.value || 0);
                 // TOTAL
                 grandTotal = subtotal - discount;
-
                 if (grandTotal < 0) {
                     grandTotal = 0;
                 }
@@ -535,41 +562,52 @@
                 </tr>`;
 
                 // SUMMARY
-                document.getElementById('subtotal').innerText =
-                    rupiah(subtotal);
-
-                document.getElementById('discountText').innerText =
-                    rupiah(discount);
-
-                document.getElementById('total').innerText =
-                    grandTotal.toLocaleString('id-ID');
-
-                document.getElementById('totalItem').innerText =
-                    cart.length;
-
-                document.getElementById('totalQty').innerText =
-                    totalQty;
-
+                document.getElementById('subtotalProduk').innerText = rupiah(subtotalProduk);
+                document.getElementById('productDiscount').innerText = rupiah(totalProductDiscount);
+                document.getElementById('discountText').innerText = rupiah(discount);
+                document.getElementById('total').innerText = grandTotal.toLocaleString('id-ID');
+                document.getElementById('totalItem').innerText = cart.length;
+                document.getElementById('totalQty').innerText = totalQty;
                 hitung();
             }
 
             // QTY
             function chg(index, val) {
-
+                if (val > 0) {
+                    if (cart[index].qty >= cart[index].stock) {
+                        Toast.fire({
+                            icon: 'warning',
+                            title: 'Stok tidak mencukupi'
+                        });
+                        return;
+                    }
+                }
                 cart[index].qty += val;
-
                 if (cart[index].qty <= 0) {
                     cart.splice(index, 1);
                 }
+                render();
+            }
 
+            function changeQty(index, value) {
+                value = parseInt(value);
+                if (isNaN(value) || value < 1) {
+                    value = 1;
+                }
+                if (value > cart[index].stock) {
+                    Toast.fire({
+                        icon: 'warning',
+                        title: 'Stok tidak mencukupi'
+                    });
+                    value = cart[index].stock;
+                }
+                cart[index].qty = value;
                 render();
             }
 
             // DELETE
             function del(index) {
-
                 cart.splice(index, 1);
-
                 render();
             }
 
@@ -579,12 +617,9 @@
 
             // PAYMENT
             function setPayment(type, el) {
-
                 paymentType = type;
-
                 document.querySelectorAll('.payment-btn')
                     .forEach(btn => btn.classList.remove('active'));
-
                 el.classList.add('active');
             }
 
@@ -597,13 +632,10 @@
             // INPUT BAYAR
             document.getElementById('bayar')
                 .addEventListener('input', function() {
-
                     let angkaBayar = angka(this.value);
-
                     this.value = angkaBayar ?
                         rupiah(angkaBayar) :
                         '';
-
                     hitung();
                 });
 
@@ -618,7 +650,6 @@
 
             // CHECKOUT
             function checkout() {
-
                 if (cart.length === 0) {
                     Swal.fire({
                         icon: 'warning',
@@ -627,7 +658,6 @@
                     });
                     return;
                 }
-
                 if (paymentType === 'credit' && !selectedCustomer) {
                     Swal.fire({
                         icon: 'warning',
@@ -637,8 +667,7 @@
                     return;
                 }
 
-                let bayar =
-                    angka(document.getElementById('bayar').value);
+                let bayar = angka(document.getElementById('bayar').value);
 
                 // SELAIN CREDIT WAJIB LUNAS
                 if (
@@ -653,19 +682,17 @@
                 }
 
                 fetch('/api/sales', {
-
                         method: 'POST',
-
                         headers: {
                             'Content-Type': 'application/json'
                         },
-
                         body: JSON.stringify({
+                            invoice_no: document.getElementById('invoiceNo').innerText,
                             paid_amount: bayar,
                             sale_date: new Date().toISOString().slice(0, 10),
                             payment_type: paymentType,
                             customer_id: selectedCustomer ? selectedCustomer.id : null,
-                            user_id: 1,
+                            user_id: {{ auth()->id() }},
                             discount: parseInt(
                                 document.getElementById('discount')?.value || 0
                             ),
@@ -681,29 +708,44 @@
                     .then(res => res.json())
                     .then(res => {
                         if (res.success) {
+
+                            // BUKA STRUK
+                            window.open(
+                                `/sales/${res.data.id}/receipt`,
+                                'receiptWindow',
+                                'width=400,height=700'
+                            );
+
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Transaksi Berhasil',
                                 text: 'Pembayaran berhasil diproses',
-                                timer: 2000,
+                                timer: 1500,
                                 showConfirmButton: false
                             });
+
+                            // RESET CART
                             cart = [];
                             render();
+
                             document.getElementById('bayar').value = '';
                             document.getElementById('kembali').value = '';
 
                             // RESET CUSTOMER
                             removeCustomer();
+
                             paymentType = 'cash';
+
                             document.querySelectorAll('.payment-btn')
                                 .forEach(btn => btn.classList.remove('active'));
+
                             document.querySelector('.payment-btn')
                                 .classList.add('active');
 
                             if (document.getElementById('discount')) {
                                 document.getElementById('discount').value = 0;
                             }
+
                         } else {
                             Swal.fire({
                                 icon: 'error',

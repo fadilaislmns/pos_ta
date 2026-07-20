@@ -6,41 +6,62 @@
         <!-- HEADER -->
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold">Daftar Penjualan</h4>
-            <a href="{{ route('sales.create') }}" class="btn btn-dark">
-                + Penjualan Baru
-            </a>
+            @if (auth()->user()->role->role_name == 'cashier')
+                <a href="{{ route('sales.create') }}" class="btn btn-dark">
+                    + Penjualan Baru
+                </a>
+            @endif
         </div>
 
         <!-- FILTER -->
-        <div class="card mb-3 p-3">
-            <div class="row align-items-end">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
 
-                <div class="col-md-3">
-                    <label>Cari</label>
-                    <input type="text" id="search" class="form-control" placeholder="Invoice / pelanggan...">
-                </div>
+                <div class="row g-3 align-items-end">
 
-                <div class="col-md-2">
-                    <label>Dari Tanggal</label>
-                    <input type="date" id="start_date" class="form-control">
-                </div>
+                    <div class="col-md-3">
+                        <label class="fw-bold">Cari</label>
+                        <input type="text" id="search" class="form-control" placeholder="Invoice / pelanggan">
+                    </div>
+                    @if (auth()->user()->role->role_name == 'admin')
+                        <div class="col-md-2">
+                            <label class="fw-bold">Kasir</label>
+                            <select id="user_id" class="form-control">
+                                <option value="">Semua Kasir</option>
+                                @foreach ($users as $user)
+                                    <option value="{{ $user->id }}">
+                                        {{ $user->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
 
-                <div class="col-md-2">
-                    <label>Sampai Tanggal</label>
-                    <input type="date" id="end_date" class="form-control">
-                </div>
+                    <div class="col-md-2">
+                        <label class="fw-bold">Dari Tanggal</label>
+                        <input type="date" id="start_date" class="form-control">
+                    </div>
 
-                <div class="col-md-2">
-                    <label>Metode</label>
-                    <select id="payment_type" class="form-control">
-                        <option value="">Semua</option>
-                        <option value="cash">Cash</option>
-                        <option value="credit">Credit</option>
-                    </select>
-                </div>
+                    <div class="col-md-2">
+                        <label class="fw-bold">Sampai Tanggal</label>
+                        <input type="date" id="end_date" class="form-control">
+                    </div>
 
-                <div class="col-md-3 d-flex gap-2">
-                    <button class="btn btn-secondary w-100" onclick="resetFilter()">Reset</button>
+                    <div class="col-md-2">
+                        <label class="fw-bold">Metode</label>
+                        <select id="payment_type" class="form-control">
+                            <option value="">Semua</option>
+                            <option value="cash">Cash</option>
+                            <option value="credit">Credit</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-1">
+                        <button class="btn btn-secondary w-100" onclick="resetFilter()">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+
                 </div>
 
             </div>
@@ -55,6 +76,7 @@
                         <th>No</th>
                         <th>Tanggal</th>
                         <th>No Invoice</th>
+                        <th>Kasir</th>
                         <th>Pelanggan</th>
                         <th>Total</th>
                         <th>Metode</th>
@@ -71,21 +93,20 @@
 
             <!-- FOOTER (LIMIT + PAGINATION) -->
             <div class="d-flex justify-content-between align-items-center p-3">
-
                 <div class="d-flex align-items-center">
                     <span class="mr-2">Show</span>
-
                     <select class="form-control mr-2" style="width: 80px;" onchange="changeLimit(this.value)">
                         <option value="10">10</option>
                         <option value="25">25</option>
                         <option value="50">50</option>
                     </select>
-
-                    <span id="totalData"></span>
+                    <span id="totalData" class="text-muted small"></span>
                 </div>
 
-                <div id="pagination"></div>
-
+                <nav>
+                    <ul class="pagination mb-0" id="pagination">
+                    </ul>
+                </nav>
             </div>
 
         </div>
@@ -163,19 +184,21 @@
             let search = document.getElementById('search').value;
             let start_date = document.getElementById('start_date').value;
             let end_date = document.getElementById('end_date').value;
+            let userElement = document.getElementById('user_id');
+            let user_id = userElement ? userElement.value : '';
             let payment_type = document.getElementById('payment_type').value;
-
             let params = new URLSearchParams();
 
             if (search) params.append('search', search);
             if (start_date) params.append('start_date', start_date);
             if (end_date) params.append('end_date', end_date);
+            if (user_id) params.append('user_id', user_id);
             if (payment_type) params.append('payment_type', payment_type);
 
             params.append('page', page);
             params.append('limit', limit);
 
-            let url = `/api/sales?${params.toString()}`;
+            let url = `/sales-data?${params.toString()}`;
 
             fetch(url)
                 .then(res => res.json())
@@ -193,6 +216,7 @@
                             <td>${(res.current_page - 1) * limit + index + 1}</td>
                             <td>${item.sale_date}</td>
                             <td>${item.invoice_no}</td>
+                            <td>${item.user ? item.user.name : '-'}</td>
                             <td>${item.customer ? item.customer.customer_name : '-'}</td>
                             <td>Rp ${parseInt(item.total_amount).toLocaleString('id-ID')}</td>
                             <td>${item.payment_type}</td>
@@ -200,6 +224,12 @@
                                 <a href="/sales/${item.id}" class="btn btn-sm btn-light">
                                     <i class="fas fa-eye text-info"></i>
                                 </a>
+                                @if (auth()->user()->role->role_name == 'admin')
+                                    <a href="/sales/${item.id}/edit"
+                                        class="btn btn-light btn-sm">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                @endif
                             </td>
                         </tr>
                     `;
@@ -207,8 +237,14 @@
                     }
 
                     document.getElementById('salesTable').innerHTML = html;
-
                     document.getElementById('totalData').innerText = `from ${res.total} data`;
+                    let userElement = document.getElementById('user_id');
+                    if (userElement) {
+                        userElement.addEventListener(
+                            'change',
+                            () => loadData(1)
+                        );
+                    }
 
                     renderPagination(res);
 
@@ -244,14 +280,28 @@
         function renderPagination(res) {
             let html = '';
 
+            // Tombol Previous
+            html += `
+                <li class="page-item ${res.current_page === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadData(${res.current_page - 1})">Prev</a>
+                </li>
+            `;
+
+            // Angka Halaman
             for (let i = 1; i <= res.last_page; i++) {
                 html += `
-            <button class="btn btn-sm ${i === res.current_page ? 'btn-primary' : 'btn-light'}"
-                onclick="loadData(${i})">
-                ${i}
-            </button>
-        `;
+                <li class="page-item ${i === res.current_page ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="loadData(${i})">${i}</a>
+                </li>
+            `;
             }
+
+            // Tombol Next
+            html += `
+                <li class="page-item ${res.current_page === res.last_page ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadData(${res.current_page + 1})">Next</a>
+                </li>
+            `;
 
             document.getElementById('pagination').innerHTML = html;
         }

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('sales', function (Blueprint $table) {
 
             // INVOICE
-            $table->string('invoice_no')
+            $table->string('invoice_no', 30)
                 ->nullable()
                 ->after('id');
 

@@ -6,6 +6,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property \App\Models\Role $role
+ */
 class User extends Authenticatable
 {
     use HasFactory;

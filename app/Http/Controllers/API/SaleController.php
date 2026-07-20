@@ -10,6 +10,7 @@ use App\Models\SaleDetail;
 use App\Models\Stock;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -20,29 +21,53 @@ class SaleController extends Controller
     {
         $query = Sale::with(['user', 'customer']);
 
+        // CASHIER HANYA DATA DIA
+        if (Auth::user()->role->role_name == 'cashier') {
+            $query->where('user_id', Auth::id());
+        }
+
+        // SEARCH
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('invoice_no', 'like', '%' . $request->search . '%')
                     ->orWhereHas('customer', function ($q2) use ($request) {
-                        $q2->where('customer_name', 'like', '%' . $request->search . '%');
+                        $q2->where(
+                            'customer_name',
+                            'like',
+                            '%' . $request->search . '%'
+                        );
                     });
             });
         }
 
-        if ($request->filled('start_date') && $request->filled('end_date')) {
+        // FILTER TANGGAL
+        if (
+            $request->filled('start_date')
+            && $request->filled('end_date')
+        ) {
             $query->whereBetween('sale_date', [
                 $request->start_date,
                 $request->end_date
             ]);
         }
 
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        // FILTER METODE
         if ($request->filled('payment_type')) {
-            $query->where('payment_type', $request->payment_type);
+            $query->where(
+                'payment_type',
+                $request->payment_type
+            );
         }
 
         $limit = $request->limit ?? 10;
 
-        $sales = $query->latest()->paginate($limit);
+        $sales = $query
+            ->latest()
+            ->paginate($limit);
 
         return response()->json($sales);
     }
@@ -83,7 +108,7 @@ class SaleController extends Controller
 
             // HITUNG TOTAL
             foreach ($request->items as $item) {
-                $product = Product::findOrFail(
+                $product = Product::with('discount')->findOrFail(
                     $item['product_id']
                 );
                 $stock = Stock::where(
@@ -100,14 +125,34 @@ class SaleController extends Controller
                     );
                 }
 
-                $subtotal =
-                    $product->selling_price *
-                    $item['quantity'];
+                $discountAmount = 0;
+                $finalPrice = $product->selling_price;
+                $discount = $product->discount;
+                if (
+                    $discount &&
+                    $discount->is_active &&
+                    now()->between(
+                        $discount->start_date,
+                        $discount->end_date
+                    )
+                ) {
+
+                    if ($discount->discount_type == 'percent') {
+                        $discountAmount = ($product->selling_price * $discount->discount_value) / 100;
+                    } else {
+                        $discountAmount = $discount->discount_value;
+                    }
+                    $finalPrice = $product->selling_price - $discountAmount;
+                }
+
+                $subtotal = $finalPrice * $item['quantity'];
                 $total += $subtotal;
                 $details[] = [
                     'product' => $product,
                     'quantity' => $item['quantity'],
-                    'subtotal' => $subtotal
+                    'subtotal' => $subtotal,
+                    'discount_amount' => $discountAmount,
+                    'selling_price' => $finalPrice
                 ];
             }
 
@@ -134,7 +179,7 @@ class SaleController extends Controller
                 'payment_type' => $request->payment_type,
                 'paid_amount' => $request->paid_amount ?? 0,
                 'change_amount' => $request->payment_type == 'cash'
-                ? max(0, ($request->paid_amount ?? 0) - $totalAfterDiscount) : 0,
+                    ? max(0, ($request->paid_amount ?? 0) - $totalAfterDiscount) : 0,
                 'user_id' => $request->user_id,
                 'customer_id' => $request->customer_id,
 
@@ -146,7 +191,8 @@ class SaleController extends Controller
                     'sale_id' => $sale->id,
                     'product_id' => $d['product']->id,
                     'quantity' => $d['quantity'],
-                    'selling_price' => $d['product']->selling_price,
+                    'selling_price' => $d['selling_price'],
+                    'discount_amount' => $d['discount_amount'],
                     'subtotal' => $d['subtotal']
                 ]);
 
@@ -203,11 +249,34 @@ class SaleController extends Controller
         } catch (\Exception $e) {
 
             DB::rollBack();
+            dd($e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Transaksi gagal',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    //Update
+    public function update(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            $sale = Sale::with('details')->findOrFail($id);
+
+            //KEMBALIKAN STOK LAMA
+            foreach (
+                $sale->details as $detail
+            ) {
+                Stock::where('product_id', $detail->product_id)
+                    ->increment('current_stock', $detail->quantity);
+            }
+            //HAPUS DETAIL LAMA
+            $sale->details()->delete();
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
         }
     }
 

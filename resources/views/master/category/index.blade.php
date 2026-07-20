@@ -75,27 +75,34 @@
                     </tbody>
 
                 </table>
+                <div class="row align-items-center mt-4">
 
-            </div>
-            <div class="card-footer d-flex justify-content-between align-items-center">
+                    <div class="col-md-6 text-muted small">
+                        Menampilkan <strong>{{ $categories->firstItem() }}</strong> sampai
+                        <strong>{{ $categories->lastItem() }}</strong> dari
+                        <strong>{{ $categories->total() }}</strong> data
+                    </div>
 
-                <div class="d-flex align-items-center mt-3">
+                    <div class="col-md-6 d-flex justify-content-end align-items-center">
 
-                    <span class="mr-2">Show</span>
+                        <div class="mr-3">
+                            <select id="perPageSelect" class="form-control form-control-sm"
+                                style="width: 70px; border-radius: 8px;">
+                                <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                                <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                            </select>
+                        </div>
 
-                    <select class="form-control mr-2" style="width: 80px;" onchange="changeLimit(this.value)">
-                        <option value="10" {{ request('limit') == 5 ? 'selected' : '' }}>10</option>
-                        <option value="25" {{ request('limit') == 10 ? 'selected' : '' }}>25</option>
-                        <option value="50" {{ request('limit') == 25 ? 'selected' : '' }}>50</option>
-                    </select>
-
-                    <span>
-                        from {{ $categories->total() }}
-                    </span>
-
+                        <div>
+                            {{ $categories->appends(request()->query())->links('pagination::bootstrap-4') }}
+                        </div>
+                    </div>
                 </div>
             </div>
+
         </div>
+    </div>
 
     </div>
 
@@ -110,27 +117,27 @@
                         <h5>Tambah Kategori</h5>
                     </div>
 
-                    <div class="modal-body">
-
-
-                        <div class="form-group">
-                            <label>Nama Kategori *</label>
-
+                    <div class="modal-body px-4 py-4">
+                        <div class="form-group mb-4">
+                            <label class="font-weight-bold">
+                                Nama Kategori <span class="text-danger">*</span>
+                            </label>
                             <input type="text" name="category_name" value="{{ old('category_name') }}"
-                                class="form-control">
+                                class="form-control @error('category_name') is-invalid @enderror"
+                                placeholder="Contoh: Makanan Ringan" required style="border-radius: 10px; height: 45px;">
 
-                            @if ($errors->any() && session('modal') == 'add')
-                                <small class="text-danger">
-                                    {{ $errors->first() }}
+                            @error('category_name')
+                                <small class="text-danger font-weight-bold mt-2 d-block">
+                                    {{ $message }}
                                 </small>
-                            @endif
+                            @enderror
                         </div>
 
-                        <div class="form-group">
-                            <label>Deskripsi</label>
-                            <textarea name="description" class="form-control">{{ old('description') }}</textarea>
+                        <div class="form-group mb-0">
+                            <label class="font-weight-bold">Deskripsi</label>
+                            <textarea name="description" class="form-control" rows="4" placeholder="Masukkan deskripsi singkat..."
+                                style="border-radius: 10px;">{{ old('description') }}</textarea>
                         </div>
-
                     </div>
 
                     <div class="modal-footer">
@@ -234,7 +241,7 @@
 
             $(document).on('click', '.btn-delete', function(e) {
                 e.preventDefault();
-                let form =$(this).closest('form');
+                let form = $(this).closest('form');
                 Swal.fire({
                     title: 'Hapus kategori?',
                     text: 'Data tidak bisa dikembalikan',
@@ -285,6 +292,13 @@
                 $(this).find('input[type="text"], textarea').val('');
                 $(this).find('.text-danger').remove();
                 $(this).find('.is-invalid').removeClass('is-invalid');
+            });
+
+            document.getElementById('perPageSelect').addEventListener('change', function() {
+                const url = new URL(window.location.href);
+                url.searchParams.set('per_page', this.value);
+                url.searchParams.set('page', 1);
+                window.location.href = url.toString();
             });
         </script>
         @if (session('modal') == 'add')

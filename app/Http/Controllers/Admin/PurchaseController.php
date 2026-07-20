@@ -10,18 +10,11 @@ use App\Models\Stock;
 use App\Models\StockMovement;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseController extends Controller
 {
-    // public function index()
-    // {
-    //     $purchases = Purchase::with('supplier')->orderBy('purchase_date', 'desc')->get();
-    //     $products = Product::all();
-    //     $suppliers = Supplier::all();
-
-    //     return view('transaksi.purchase.index', compact('purchases', 'products', 'suppliers'));
-    // }
     public function index(Request $request)
     {
         $query = Purchase::with('supplier');
@@ -49,19 +42,44 @@ class PurchaseController extends Controller
             ]);
         }
 
-        // URUTAN TERBARU
+        $perPage = $request->input('per_page', 10);
+
         $purchases = $query
             ->orderBy('purchase_date', 'desc')
             ->orderBy('created_at', 'desc')
-            ->paginate(10)
+            ->paginate($perPage)
             ->withQueryString();
 
         $suppliers = Supplier::all();
         $products = Product::all();
+        $autoPO = null;
+        if ($request->auto_po) {
+            $autoPO = [
+                'product_id' => $request->product_id,
+                'supplier_id' => $request->supplier_id,
+                'qty' => $request->qty
+            ];
+        }
 
-        return view('transaksi.purchase.index', compact('purchases', 'suppliers', 'products'));
+        return view('transaksi.purchase.index', compact('purchases', 'suppliers', 'products', 'autoPO'));
     }
-    
+
+    public function getProductsBySupplier($supplierId)
+    {
+        $supplier = Supplier::with('products')->findOrFail($supplierId);
+
+        return response()->json(
+            $supplier->products->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'product_name' => $product->product_name,
+                    'purchase_price' => $product->purchase_price,
+                    'selling_price' => $product->selling_price,
+                ];
+            })
+        );
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -71,6 +89,7 @@ class PurchaseController extends Controller
             'products.*.product_id' => 'required',
             'products.*.qty' => 'required|numeric|min:1',
             'products.*.price' => 'required|numeric|min:0',
+            'products.*.selling_price' => 'required|numeric|min:0',
         ]);
 
         DB::beginTransaction();
@@ -79,6 +98,9 @@ class PurchaseController extends Controller
             $purchase = Purchase::create([
                 'supplier_id' => $request->supplier_id,
                 'purchase_date' => $request->purchase_date,
+                'invoice_no' => 'PO-' . date('YmdHis'),
+                'user_id' => Auth::id(),
+                'status' => 'completed',
                 'total' => 0
             ]);
 
@@ -94,6 +116,13 @@ class PurchaseController extends Controller
                     'product_id' => $item['product_id'],
                     'qty' => $item['qty'],
                     'price' => $item['price'],
+                    'selling_price' => $item['selling_price'],
+                ]);
+                $product = Product::find($item['product_id']);
+
+                $product->update([
+                    'purchase_price' => $item['price'],
+                    'selling_price' => $item['selling_price']
                 ]);
 
                 // ambil / buat stock
@@ -126,7 +155,7 @@ class PurchaseController extends Controller
 
             DB::commit();
 
-            return redirect()->back()->with('success', 'Purchase berhasil disimpan');
+            return redirect()->back()->with('success', 'Data pembelian berhasil ditambahkan!');
         } catch (\Exception $e) {
             DB::rollback();
 

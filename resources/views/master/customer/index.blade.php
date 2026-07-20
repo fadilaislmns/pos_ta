@@ -52,6 +52,30 @@
                         @endforeach
                     </tbody>
                 </table>
+                <div class="row align-items-center mt-4">
+
+                    <div class="col-md-6 text-muted small">
+                        Menampilkan <strong>{{ $customers->firstItem() }}</strong> sampai
+                        <strong>{{ $customers->lastItem() }}</strong> dari
+                        <strong>{{ $customers->total() }}</strong> data
+                    </div>
+
+                    <div class="col-md-6 d-flex justify-content-end align-items-center">
+
+                        <div class="mr-3">
+                            <select id="perPageSelect" class="form-control form-control-sm"
+                                style="width: 70px; border-radius: 8px;">
+                                <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                                <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            {{ $customers->appends(request()->query())->links('pagination::bootstrap-4') }}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -332,6 +356,12 @@
                     });
 
                 });
+            });
+            document.getElementById('perPageSelect').addEventListener('change', function() {
+                const url = new URL(window.location.href);
+                url.searchParams.set('per_page', this.value);
+                url.searchParams.set('page', 1);
+                window.location.href = url.toString();
             });
         </script>
     @endpush

@@ -2,16 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\ForecastResult;
 use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
 
     protected $fillable = [
-        'id',
         'product_code',
         'category_id',
         'product_name',
@@ -25,6 +22,11 @@ class Product extends Model
         return $this->belongsTo(Category::class, 'category_id');
     }
 
+    public function suppliers()
+    {
+        return $this->belongsToMany(Supplier::class, 'product_suppliers');
+    }
+
     public function stock()
     {
         return $this->hasOne(Stock::class, 'product_id');
@@ -33,5 +35,19 @@ class Product extends Model
     public function stockMovements()
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    public function forecastResult()
+    {
+        return $this->hasOne(ForecastResult::class);
+    }
+
+    public function purchaseRecommendation()
+    {
+        return $this->hasOne(PurchaseRecommendation::class);
+    }
+    public function discount()
+    {
+        return $this->hasOne(Discount::class);
     }
 }

@@ -70,27 +70,32 @@
                     </tbody>
 
                 </table>
+<div class="row align-items-center mt-4">
 
-            </div>
-            {{-- PAGINATION DI DALAM CARD --}}
-            <div class="card-footer d-flex justify-content-between align-items-center">
+                    <div class="col-md-6 text-muted small">
+                        Menampilkan <strong>{{ $suppliers->firstItem() }}</strong> sampai
+                        <strong>{{ $suppliers->lastItem() }}</strong> dari
+                        <strong>{{ $suppliers->total() }}</strong> data
+                    </div>
 
-                <div class="d-flex align-items-center mt-3">
+                    <div class="col-md-6 d-flex justify-content-end align-items-center">
 
-                    <span class="mr-2">Show</span>
+                        <div class="mr-3">
+                            <select id="perPageSelect" class="form-control form-control-sm"
+                                style="width: 70px; border-radius: 8px;">
+                                <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                                <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                            </select>
+                        </div>
 
-                    <select class="form-control mr-2" style="width: 80px;" onchange="changeLimit(this.value)">
-                        <option value="10" {{ request('limit') == 5 ? 'selected' : '' }}>10</option>
-                        <option value="25" {{ request('limit') == 10 ? 'selected' : '' }}>25</option>
-                        <option value="50" {{ request('limit') == 25 ? 'selected' : '' }}>50</option>
-                    </select>
-
-                    <span>
-                        from {{ $suppliers->total() }}
-                    </span>
-
+                        <div>
+                            {{ $suppliers->appends(request()->query())->links('pagination::bootstrap-4') }}
+                        </div>
+                    </div>
                 </div>
             </div>
+
         </div>
 
     </div>
@@ -313,6 +318,13 @@
             $('#modalEdit').on('hidden.bs.modal', function() {
                 $(this).find('.text-danger').remove();
                 $(this).find('.is-invalid').removeClass('is-invalid');
+            });
+
+            document.getElementById('perPageSelect').addEventListener('change', function() {
+                const url = new URL(window.location.href);
+                url.searchParams.set('per_page', this.value);
+                url.searchParams.set('page', 1);
+                window.location.href = url.toString();
             });
         </script>
         @if (session('modal') == 'add')

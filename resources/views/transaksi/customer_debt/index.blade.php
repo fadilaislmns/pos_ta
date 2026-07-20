@@ -58,8 +58,9 @@
 
                                 @if ($d->status == 'active')
                                     <!-- LUNASI -->
-                                    <button class="btn btn-success btn-sm btn-pay" data-id="{{ $d->id }}">
-                                        <i class="fas fa-check"></i>
+                                    <button class="btn btn-success btn-light btn-pay" data-id="{{ $d->id }}"
+                                        data-amount="{{ $d->amount }}">
+                                        <i class="fas fa-money-bill-wave text-success"></i>
                                     </button>
                                 @endif
                             </td>
@@ -74,6 +75,30 @@
                     @endforelse
                 </tbody>
             </table>
+            <div class="row align-items-center mt-4">
+
+                <div class="col-md-6 text-muted small">
+                    Menampilkan <strong>{{ $debts->firstItem() }}</strong> sampai
+                    <strong>{{ $debts->lastItem() }}</strong> dari
+                    <strong>{{ $debts->total() }}</strong> data
+                </div>
+
+                <div class="col-md-6 d-flex justify-content-end align-items-center">
+
+                    <div class="mr-3">
+                        <select id="perPageSelect" class="form-control form-control-sm"
+                            style="width: 70px; border-radius: 8px;">
+                            <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                            <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                            <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        {{ $debts->appends(request()->query())->links('pagination::bootstrap-4') }}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -161,117 +186,105 @@
                 <div class="modal-body">
                     <!-- INFO -->
                     <div class="row mb-3">
-                        <div class="col-md-6">
+
+                        <!-- INVOICE -->
+                        <div class="col-md-4">
                             <small>Invoice</small>
+
                             <div>
                                 <b id="detailInvoice"></b>
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <!-- TANGGAL -->
+                        <div class="col-md-4">
                             <small>Tanggal</small>
+
                             <div>
                                 <b id="detailDate"></b>
                             </div>
                         </div>
 
-                        <div class="col-md-6 mt-2">
+                        <!-- STATUS -->
+                        <div class="col-md-4">
+                            <small>Status</small>
+
+                            <div>
+                                <b id="detailStatus"></b>
+                            </div>
+                        </div>
+
+                        <!-- CUSTOMER -->
+                        <div class="col-md-4 mt-3">
                             <small>Customer</small>
                             <div>
                                 <b id="detailCustomer"></b>
                             </div>
                         </div>
 
-                        <div class="col-md-6 mt-2">
-                            <small>Status</small>
+                        <!-- NO HP -->
+                        <div class="col-md-4 mt-3">
+                            <small>No HP</small>
                             <div>
-                                <b id="detailStatus"></b>
+                                <b id="detailPhone"></b>
                             </div>
                         </div>
+                        <div class="col-md-4 mt-3">
+                            <small>Kasir</small>
+                            <div>
+                                <b id="detailCashier"></b>
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- RINGKASAN -->
-<div class="row mb-4">
+                    <div class="row mb-4">
+                        <!-- TOTAL -->
+                        <div class="col-md-4">
+                            <small class="text-muted">
+                                Total
+                            </small>
+                            <div>
+                                <b id="detailTotal"></b>
+                            </div>
+                        </div>
 
-    <!-- TOTAL -->
-    <div class="col-md-3">
+                        <!-- DIBAYAR -->
+                        <div class="col-md-4">
+                            <small class="text-muted">
+                                Dibayar
+                            </small>
 
-        <small class="text-muted">
+                            <div>
+                                <b class="text-primary" id="detailPaid"></b>
+                            </div>
+                        </div>
 
-            Total
+                        <!-- KEMBALIAN -->
+                        <div class="col-md-4" id="changeWrapper">
+                            <small class="text-muted">
+                                Kembalian
+                            </small>
 
-        </small>
+                            <div>
+                                <b class="text-success" id="detailChange"></b>
+                            </div>
+                        </div>
 
-        <div>
+                        <!-- HUTANG -->
+                        <div class="col-md-4" id="debtWrapper">
+                            <small class="text-muted">
+                                Sisa Hutang
+                            </small>
 
-            <b id="detailTotal"></b>
+                            <div>
+                                <b class="text-danger" id="detailDebt"></b>
+                            </div>
 
-        </div>
+                        </div>
 
-    </div>
-
-    <!-- DIBAYAR -->
-    <div class="col-md-3">
-
-        <small class="text-muted">
-
-            Dibayar
-
-        </small>
-
-        <div>
-
-            <b
-                class="text-primary"
-                id="detailPaid"></b>
-
-        </div>
-
-    </div>
-
-    <!-- KEMBALIAN -->
-    <div
-        class="col-md-3"
-        id="changeWrapper">
-
-        <small class="text-muted">
-
-            Kembalian
-
-        </small>
-
-        <div>
-
-            <b
-                class="text-success"
-                id="detailChange"></b>
-
-        </div>
-
-    </div>
-
-    <!-- HUTANG -->
-    <div
-        class="col-md-3"
-        id="debtWrapper">
-
-        <small class="text-muted">
-
-            Sisa Hutang
-
-        </small>
-
-        <div>
-
-            <b
-                class="text-danger"
-                id="detailDebt"></b>
-
-        </div>
-
-    </div>
-
-</div>
+                    </div>
                     <!-- TABLE -->
                     <div class="table-responsive">
                         <table class="table table-bordered">
@@ -292,6 +305,41 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalPayment">
+        <div class="modal-dialog">
+            <form id="formPayment">
+                @csrf
+                <input type="hidden" id="paymentDebtId">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5>Pembayaran Piutang</h5>
+                        <button class="close" data-dismiss="modal">
+                            &times;
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Sisa Hutang</label>
+                            <input id="remainingDebt" class="form-control" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Nominal Dibayar</label>
+                            <input type="number" id="payAmount" class="form-control" min="1000">
+                            <small id="payAmountError" class="text-danger d-none"></small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-dismiss="modal">
+                            Batal
+                        </button>
+                        <button class="btn btn-success">
+                            Simpan Pembayaran
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 
     @push('scripts')
         <script>
@@ -305,33 +353,15 @@
             });
 
             $('.btn-pay').click(function() {
-                let id = $(this).data('id');
-                Swal.fire({
-                    title: 'Lunasi Hutang?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Ya'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.post(
-                            '/customer-debts/' + id + '/pay', {
-                                _token: '{{ csrf_token() }}'
-                            },
+                $('#paymentDebtId').val($(this).data('id'));
+                $('#remainingDebt').val(
+                    'Rp ' + parseInt($(this).data('amount')).toLocaleString('id-ID')
+                );
 
-                            function(res) {
-                                console.log(res);
-                                Toast.fire({
-                                    icon: 'success',
-                                    title: 'Hutang berhasil dilunasi'
-                                });
-
-                                setTimeout(() => {
-                                    location.reload();
-                                }, 1200);
-                            }
-                        );
-                    }
-                });
+                // SIMPAN NILAI ASLI
+                $('#remainingDebt').attr('data-value', $(this).data('amount'));
+                $('#payAmount').val('');
+                $('#modalPayment').modal('show');
             });
 
             // DETAIL PIUTANG
@@ -356,6 +386,14 @@
                                 d.sale.customer
                                 ?.customer_name ?? '-'
                             );
+                        $('#detailPhone')
+                            .text(
+                                d.sale.customer?.phone ?? '-'
+                            );
+                        $('#detailCashier')
+                            .text(
+                                d.sale.user?.name ?? '-'
+                            );
 
                         $('#detailStatus')
                             .html(
@@ -364,7 +402,7 @@
                                 '<span class="badge badge-success">Lunas</span>'
                             );
                         // TOTAL
-                        $('#detailTotal').text( 'Rp ' +
+                        $('#detailTotal').text('Rp ' +
                             parseInt(d.sale.total_amount)
                             .toLocaleString('id-ID')
                         );
@@ -388,7 +426,7 @@
                             // CASH
                             $('#changeWrapper').show();
                             $('#debtWrapper').hide();
-                            $('#detailChange').text( 'Rp ' +
+                            $('#detailChange').text('Rp ' +
                                 parseInt(
                                     d.sale.change_amount ?? 0
                                 ).toLocaleString('id-ID')
@@ -414,6 +452,75 @@
                         $('#modalDetail').modal('show');
                     }
                 );
+            });
+
+            $('#formPayment').submit(function(e) {
+
+                e.preventDefault();
+
+                let id = $('#paymentDebtId').val();
+                let sisa = parseFloat($('#remainingDebt').attr('data-value'));
+                let bayar = parseFloat($('#payAmount').val());
+
+                // Reset error
+                $('#payAmount').removeClass('is-invalid');
+                $('#payAmountError').addClass('d-none').text('');
+
+                // Validasi kosong
+                if ($('#payAmount').val().trim() === '') {
+                    $('#payAmount').addClass('is-invalid');
+                    $('#payAmountError')
+                        .removeClass('d-none')
+                        .text('Nominal pembayaran wajib diisi.');
+                    $('#payAmount').focus();
+                    return;
+                }
+
+                // Validasi <= 0
+                if (bayar <= 0) {
+                    $('#payAmount').addClass('is-invalid');
+                    $('#payAmountError')
+                        .removeClass('d-none')
+                        .text('Nominal pembayaran harus lebih dari 0.');
+                    $('#payAmount').focus();
+                    return;
+                }
+
+                // Validasi melebihi sisa hutang
+                if (bayar > sisa) {
+                    $('#payAmount').addClass('is-invalid');
+                    $('#payAmountError')
+                        .removeClass('d-none')
+                        .text('Nominal pembayaran tidak boleh melebihi sisa hutang.');
+                    $('#payAmount').focus();
+                    return;
+                }
+
+                $.ajax({
+                    url: '/customer-debts/' + id + '/pay',
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        amount: bayar
+                    },
+
+                    success: function(res) {
+                        Toast.fire({
+                            icon: 'success',
+                            title: res.message
+                        });
+                        $('#modalPayment').modal('hide');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    }
+                });
+            });
+            $('#payAmount').on('input', function() {
+                $(this).removeClass('is-invalid');
+                $('#payAmountError')
+                    .addClass('d-none')
+                    .text('');
             });
 
             // FILTER PANEL
@@ -480,6 +587,12 @@
                 // CLOSE PANEL
                 $('#filterPanel')
                     .removeClass('active');
+            });
+            document.getElementById('perPageSelect').addEventListener('change', function() {
+                const url = new URL(window.location.href);
+                url.searchParams.set('per_page', this.value);
+                url.searchParams.set('page', 1);
+                window.location.href = url.toString();
             });
         </script>
     @endpush

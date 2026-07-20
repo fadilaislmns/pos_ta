@@ -15,5 +15,8 @@ class Supplier extends Model
         'MOQ'
     ];
 
-
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'product_suppliers');
+    }
 }

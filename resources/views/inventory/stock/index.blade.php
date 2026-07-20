@@ -16,9 +16,11 @@
                         Filter
                     </button>
 
-                    <a href="{{ route('stocks.movements') }}" class="btn btn-dark">
-                        <i class="fas fa-exchange-alt"></i> Stock Movements
-                    </a>
+                    @if (auth()->user()->role->role_name == 'admin')
+                        <a href="{{ route('stocks.movements') }}" class="btn btn-dark">
+                            <i class="fas fa-exchange-alt"></i> Stock Movements
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -81,11 +83,14 @@
 
                                 <td>
                                     <!-- EDIT -->
-                                    <i class="fas fa-pen text-warning mr-3 btnEdit" style="cursor:pointer;"
-                                        data-id="{{ $s->id }}" data-name="{{ $s->product->product_name }}"
-                                        data-stock="{{ $s->current_stock }}" data-safety="{{ $s->safety_stock }}"
-                                        data-rop="{{ $s->reorder_point }}">
-                                    </i>
+                                    @if (auth()->user()->role->role_name == 'admin')
+                                        <!-- EDIT -->
+                                        <i class="fas fa-pen text-warning mr-3 btnEdit" style="cursor:pointer;"
+                                            data-id="{{ $s->id }}" data-name="{{ $s->product->product_name }}"
+                                            data-stock="{{ $s->current_stock }}" data-safety="{{ $s->safety_stock }}"
+                                            data-rop="{{ $s->reorder_point }}">
+                                        </i>
+                                    @endif
 
                                     <!-- DETAIL -->
                                     <a href="{{ route('stocks.show', $s->id) }}" class="text-info">
@@ -99,27 +104,22 @@
                 </table>
 
             </div>
-            <div class="card-footer d-flex justify-content-between align-items-center">
-
-                <div class="d-flex align-items-center mt-3">
-
+            <div class="card-footer d-flex justify-content-between align-items-center flex-wrap">
+                <!-- LEFT -->
+                <div class="d-flex align-items-center">
                     <span class="mr-2">Show</span>
-
-                    <select class="form-control mr-2" style="width: 80px;" onchange="changeLimit(this.value)">
-                        <option value="10" {{ request('limit') == 5 ? 'selected' : '' }}>10</option>
-                        <option value="25" {{ request('limit') == 10 ? 'selected' : '' }}>25</option>
-                        <option value="50" {{ request('limit') == 25 ? 'selected' : '' }}>50</option>
+                    <select class="form-control form-control-sm mr-2" style="width:80px;" onchange="changeLimit(this.value)">
+                        <option value="10" {{ request('limit') == 10 ? 'selected' : '' }}>10</option>
+                        <option value="25" {{ request('limit') == 25 ? 'selected' : '' }}>25</option>
+                        <option value="50" {{ request('limit') == 50 ? 'selected' : '' }}>50</option>
                     </select>
-
-                    <span>
-                        from {{ $stocks->total() }}
+                    <span>dari {{ $stocks->total() }} data
                     </span>
-
                 </div>
-            </div>
-
-            <div class="card-footer">
-                {{ $stocks->links() }}
+                <!-- RIGHT -->
+                <div>
+                    {{ $stocks->links('pagination::bootstrap-4') }}
+                </div>
             </div>
         </div>
 
@@ -176,46 +176,51 @@
 
     <div id="filterPanel" class="filter-panel">
 
-        <div class="filter-header d-flex justify-content-between align-items-center">
-            <h5>Filter</h5>
-            <button type="button" id="closeFilter">
+        <div class="filter-header d-flex justify-content-between align-items-center"">
+            <h5 class="mb-0">Filter</h5>
+            <button class="btn btn-sm btn-light" id="closeFilter">
                 <i class="fas fa-times"></i>
             </button>
         </div>
 
 
         <form method="GET">
-
             <div class="filter-body">
-
                 <h6>Status Stock</h6>
-
                 <div>
                     <input type="radio" name="status" value="" {{ request('status') == '' ? 'checked' : '' }}>
                     Semua
                 </div>
-
                 <div>
                     <input type="radio" name="status" value="aman" {{ request('status') == 'aman' ? 'checked' : '' }}>
                     Aman
                 </div>
-
                 <div>
                     <input type="radio" name="status" value="peringatan"
                         {{ request('status') == 'peringatan' ? 'checked' : '' }}> Peringatan
                 </div>
-
             </div>
-
             <div class="filter-footer">
                 <a href="{{ route('stocks.index') }}" class="btn btn-light">Reset</a>
                 <button class="btn btn-success">Terapkan</button>
             </div>
-
         </form>
-
     </div>
 
+    @push('styles')
+        <style>
+            .pagination {
+                margin-bottom: 0 !important;
+            }
+            .page-item.active .page-link {
+                background-color: #007bff;
+                border-color: #007bff;
+            }
+            .page-link {
+                color: #6c757d;
+            }
+        </style>
+    @endpush
     @push('scripts')
         <script>
             $('.btnEdit').click(function() {
@@ -257,7 +262,6 @@
                 });
 
             });
-
         </script>
     @endpush
 @endsection

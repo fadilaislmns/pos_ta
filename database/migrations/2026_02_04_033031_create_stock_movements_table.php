@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->enum('movement_type', ['IN', 'OUT']);
             $table->integer('quantity');
-            $table->string('source');
+            $table->string('source', 50);
             $table->timestamps();
 
             $table->foreignId('product_id')->references('id')->on('products');

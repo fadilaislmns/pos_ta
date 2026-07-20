@@ -2,32 +2,49 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
     // GET ALL
-    public function index()
+    public function index(Request $request)
+    {
+        $perPage = $request->query('per_page', 10);
+        $users = User::with('role')
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return view('users.index', compact('users'));
+    }
+
+    public function toggleStatus($id)
     {
         try {
-            $users = User::with('role')->get();
-
+            $user = User::findOrFail($id);
+            $user->status = $user->status == 'active' ? 'inactive' : 'active';
+            $user->save();
             return response()->json([
                 'success' => true,
-                'message' => 'Data user berhasil diambil',
-                'data' => $users
-            ], 200);
-
+                'status' => $user->status
+            ]);
         } catch (\Exception $e) {
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengambil data user',
-                'error' => $e->getMessage()
+                'message' => $e->getMessage()
             ], 500);
         }
+    }
+    public function create()
+    {
+        $roles = Role::all();
+        return view('users.create', compact('roles'));
     }
 
     // STORE
@@ -50,12 +67,13 @@ class UserController extends Controller
                 'status' => $request->status
             ]);
 
+            session()->flash('success_message', 'Data user berhasil ditambahkan!');
+
             return response()->json([
                 'success' => true,
                 'message' => 'User berhasil ditambahkan',
                 'data' => $user
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -65,115 +83,125 @@ class UserController extends Controller
         }
     }
 
-    // SHOW
-    public function show($id)
+    // METHOD CEK EMAIL REALTIME
+    public function checkEmail(Request $request)
     {
-        try {
-            $user = User::with('role')->findOrFail($id);
+        $exists = User::where('email', $request->email)->exists();
 
+        if ($exists) {
             return response()->json([
-                'success' => true,
-                'message' => 'Detail user berhasil diambil',
-                'data' => $user
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User tidak ditemukan',
-                'error' => $e->getMessage()
-            ], 404);
+                'status' => 'error',
+                'message' => 'Email sudah terdaftar.'
+            ]);
         }
+
+        return response()->json(['status' => 'success']);
     }
 
-    // UPDATE
+    // MENAMPILKAN HALAMAN EDIT USER
+    public function edit($id)
+    {
+        $user = User::findOrFail($id);
+        $roles = Role::all();
+
+        return view('users.edit', compact('user', 'roles'));
+    }
+
+    // UPDATE DATA
     public function update(Request $request, $id)
-{
-    try {
-        $user = User::findOrFail($id);
-
-        $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => 'required|email|unique:users,email,' . $id,
-            'role_id' => 'required|exists:roles,id',
-            'password' => 'nullable|min:6',
-            'status' => 'required|in:active,inactive'
-        ]);
-
-        $data = [
-            'name' => $request->name,
-            'email' => $request->email,
-            'role_id' => $request->role_id,
-            'status' => $request->status
-        ];
-
-        // 🔥 kalau password diisi → update
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
-        }
-
-        $user->update($data);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User berhasil diupdate',
-            'data' => $user
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Gagal update user',
-            'error' => $e->getMessage()
-        ], 500);
-    }
-}
-
-// RESET PASSWORD
-public function resetPassword(Request $request, $id)
-{
-    try {
-        $user = User::findOrFail($id);
-
-        $request->validate([
-            'password' => 'required|min:6|confirmed'
-        ]);
-
-        $user->update([
-            'password' => Hash::make($request->password)
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Password berhasil direset'
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Gagal reset password',
-            'error' => $e->getMessage()
-        ], 500);
-    }
-}
-    // DELETE
-    public function destroy($id)
     {
         try {
             $user = User::findOrFail($id);
-            $user->delete();
+
+            $request->validate([
+                'name' => 'required|string|max:100',
+                'email' => 'required|email|unique:users,email,' . $id,
+                'role_id' => 'required|exists:roles,id',
+                'status' => 'required|in:active,inactive'
+            ]);
+
+            $user->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'role_id' => $request->role_id,
+                'status' => $request->status
+            ]);
+
+            session()->flash('success_message', 'Data user berhasil diupdate!');
 
             return response()->json([
                 'success' => true,
-                'message' => 'User berhasil dihapus'
+                'message' => 'User berhasil diupdate',
+                'data' => $user
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menghapus user',
+                'message' => 'Gagal update user',
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    // RESET PASSWORD
+    public function resetPassword(Request $request, $id)
+    {
+        try {
+            $user = User::findOrFail($id);
+
+            $request->validate([
+                'password' => 'required|min:6|confirmed'
+            ]);
+
+            $user->update([
+                'password' => Hash::make($request->password)
+            ]);
+
+            session()->flash('success_message', 'Password berhasil diubah.');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password berhasil direset'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal reset password',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        $user = User::findOrFail(Auth::id());
+
+        // Cek password lama
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors([
+                'current_password' => 'Password saat ini salah.'
+            ]);
+        }
+
+        // Cek password baru tidak boleh sama dengan password lama
+        if (Hash::check($request->password, $user->password)) {
+            return back()->withErrors([
+                'password' => 'Password baru tidak boleh sama dengan password lama.'
+            ]);
+        }
+
+        // Update password
+        $user->update([
+            'password' => Hash::make($request->password)
+        ]);
+        return back()->with(
+            'success',
+            'Password berhasil diperbarui.'
+        );
     }
 }

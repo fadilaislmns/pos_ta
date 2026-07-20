@@ -36,7 +36,7 @@
                                 <small>{{ \Carbon\Carbon::parse($sale->sale_date)->format('d M Y') }}</small>
 
                                 <div class="mt-2">
-                                    Kasir:{{ $sale->user->name ?? '-' }}
+                                    Kasir : {{ $sale->user->name ?? '-' }}
                                 </div>
                             </div>
                         </div>
@@ -95,20 +95,40 @@
                         <tr>
                             <th>No</th>
                             <th>Produk</th>
-                            <th>Harga</th>
+                            <th>Harga Normal</th>
+                            <th>Diskon</th>
+                            <th>Harga Jual</th>
                             <th>Qty</th>
                             <th>Subtotal</th>
                         </tr>
                     </thead>
 
                     <tbody>
+
                         @foreach ($sale->details as $item)
+                            @php
+                                $hargaNormal = $item->selling_price + ($item->discount_amount ?? 0);
+                            @endphp
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td>{{ $item->product->product_name ?? '-' }}</td>
+                                <td>{{ $item->product->product_name }}</td>
+                                <td>Rp {{ number_format($hargaNormal, 0, ',', '.') }}</td>
+                                <td>
+                                    @if (($item->discount_amount ?? 0) > 0)
+                                        <span class="text-success">
+                                            Rp {{ number_format($item->discount_amount, 0, ',', '.') }}
+                                        </span>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
                                 <td>Rp {{ number_format($item->selling_price, 0, ',', '.') }}</td>
                                 <td>{{ $item->quantity }}</td>
-                                <td>Rp{{ number_format($item->subtotal, 0, ',', '.') }}</td>
+                                <td>
+                                    <strong>
+                                        Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                                    </strong>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -121,6 +141,14 @@
 
             <!-- PAYMENT -->
             <div class="col-md-6">
+                @php
+                    $productDiscount = $sale->details->sum(function ($d) {
+                        return ($d->discount_amount ?? 0) * $d->quantity;
+                    });
+                    $subtotalProduk = $sale->details->sum(function ($d) {
+                        return ($d->selling_price + ($d->discount_amount ?? 0)) * $d->quantity;
+                    });
+                @endphp
                 <div class="card shadow-sm">
                     <div class="card-header">
                         <b>Ringkasan Pembayaran</b>
@@ -130,29 +158,60 @@
 
                         <!-- TOTAL -->
                         <div class="d-flex justify-content-between mb-2">
-                            <span>Total</span>
-                            <b>Rp {{ number_format($sale->total_amount, 0, ',', '.') }}</b>
+                            <span>Subtotal Produk</span>
+                            <b>
+                                Rp {{ number_format($subtotalProduk, 0, ',', '.') }}
+                            </b>
+                        </div>
+                        @if ($productDiscount > 0)
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Diskon Produk</span>
+                                <b class="text-success">
+                                    - Rp {{ number_format($productDiscount, 0, ',', '.') }}
+                                </b>
+                            </div>
+                        @endif
+
+                        @if (($sale->discount ?? 0) > 0)
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Diskon</span>
+                                <b class="text-danger">
+                                    - Rp {{ number_format($sale->discount, 0, ',', '.') }}
+                                </b>
+                            </div>
+                        @endif
+
+                        <hr>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Total Bayar</span>
+                            <b class="text-primary">
+                                Rp {{ number_format($sale->total_amount, 0, ',', '.') }}
+                            </b>
                         </div>
 
-                        <!-- DIBAYAR -->
                         <div class="d-flex justify-content-between mb-2">
-                            <span>Dibayar</span>
-                            <b class="text-primary">Rp {{ number_format($sale->paid_amount ?? 0, 0, ',', '.') }}</b>
+                            <span>Uang Dibayar</span>
+                            <b>
+                                Rp {{ number_format($sale->paid_amount ?? 0, 0, ',', '.') }}
+                            </b>
                         </div>
 
                         @if ($sale->payment_type == 'cash')
-                            <!-- KEMBALIAN -->
-                            <div class="d-flex justify-content-between">
+                            <div class="d-flex justify-content-between mb-2">
                                 <span>Kembalian</span>
-                                <b class="text-success">Rp {{ number_format($sale->change_amount ?? 0, 0, ',', '.') }}</b>
+                                <b class="text-success">
+                                    Rp {{ number_format($sale->change_amount ?? 0, 0, ',', '.') }}
+                                </b>
                             </div>
                         @endif
 
                         @if ($sale->payment_type == 'credit')
-                            <!-- SISA HUTANG -->
                             <div class="d-flex justify-content-between">
                                 <span>Sisa Hutang</span>
-                                <b class="text-danger">Rp {{ number_format(optional($sale->debt)->amount ?? 0, 0, ',', '.') }}</b>
+                                <b class="text-danger">
+                                    Rp {{ number_format(optional($sale->debt)->amount ?? 0, 0, ',', '.') }}
+                                </b>
                             </div>
                         @endif
 
@@ -225,11 +284,8 @@
                                 <div class="text-center mb-3">
                                     <i class="fas fa-shopping-cart fa-2x"></i>
                                     <h4 class="mb-0">
-                                        AMILA POS
+                                        AMILA MART
                                     </h4>
-                                    <small>
-                                        Point of Sales System
-                                    </small>
                                     <div>
                                         Jl. Raya by pass Simpang Lubuk Minturun
                                     </div>
@@ -273,23 +329,33 @@
 
                                 <hr>
                                 <!-- ITEM -->
-                                <table class="table table-sm">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                                     <thead>
-                                        <tr>
-                                            <th>Produk</th>
-                                            <th>Qty</th>
-                                            <th>Harga</th>
-                                            <th>Subtotal</th>
+                                        <tr style="border-bottom: 1px dashed #000;">
+                                            <th style="text-align: left;">Produk</th>
+                                            <th style="text-align: center;">Qty</th>
+                                            <th style="text-align: right;">Total</th>
                                         </tr>
                                     </thead>
-
                                     <tbody>
                                         @foreach ($sale->details as $item)
+                                            @php
+                                                $hargaNormal = $item->selling_price + ($item->discount_amount ?? 0);
+                                            @endphp
                                             <tr>
-                                                <td>{{ $item->product->product_name }}</td>
-                                                <td>{{ $item->quantity }}</td>
-                                                <td>{{ number_format($item->selling_price, 0, ',', '.') }}</td>
-                                                <td>{{ number_format($item->subtotal, 0, ',', '.') }}</td>
+                                                <td style="padding: 5px 0;">
+                                                    {{ $item->product->product_name }}<br>
+                                                    <small style="color: #666;">
+                                                        Rp{{ number_format($hargaNormal, 0, ',', '.') }}
+                                                        @if ($item->discount_amount > 0)
+                                                            <span
+                                                                style="color:red;">(-Rp{{ number_format($item->discount_amount, 0, ',', '.') }})</span>
+                                                        @endif
+                                                    </small>
+                                                </td>
+                                                <td style="text-align: center;">{{ $item->quantity }}</td>
+                                                <td style="text-align: right;">
+                                                    {{ number_format($item->subtotal, 0, ',', '.') }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -299,8 +365,35 @@
                                 <!-- TOTAL -->
                                 <div class="d-flex justify-content-between">
                                     <span>Total</span>
-                                    <b>Rp {{ number_format($sale->total_amount, 0, ',', '.') }}</b>
+                                    <b>
+                                        Rp {{ number_format($sale->total_amount, 0, ',', '.') }}
+                                    </b>
                                 </div>
+
+                                @if (($sale->discount ?? 0) > 0)
+                                    <div class="d-flex justify-content-between">
+                                        <span>Diskon</span>
+                                        <b class="text-danger">
+                                            - Rp {{ number_format($sale->discount, 0, ',', '.') }}
+                                        </b>
+                                    </div>
+                                @endif
+
+                                <div class="d-flex justify-content-between">
+                                    <span>Dibayar</span>
+                                    <b>
+                                        Rp {{ number_format($sale->paid_amount ?? 0, 0, ',', '.') }}
+                                    </b>
+                                </div>
+
+                                @if ($sale->payment_type == 'cash')
+                                    <div class="d-flex justify-content-between">
+                                        <span>Kembalian</span>
+                                        <b>
+                                            Rp {{ number_format($sale->change_amount ?? 0, 0, ',', '.') }}
+                                        </b>
+                                    </div>
+                                @endif
 
                                 @if ($sale->payment_type == 'credit')
                                     <div class="d-flex justify-content-between">
@@ -341,9 +434,45 @@
     </div>
 
     @push('scripts')
+        <style>
+            /* Sembunyikan elemen lain saat mencetak */
+            @media print {
+                body * {
+                    visibility: hidden;
+                }
+
+                #printArea,
+                #printArea * {
+                    visibility: visible;
+                }
+
+                #printArea {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                }
+
+                /* Menghilangkan tombol cetak/batal saat print */
+                .modal-header,
+                .modal-footer,
+                .btn {
+                    display: none !important;
+                }
+            }
+        </style>
+
         <script>
             function printInvoice() {
+                // Fokuskan cetakan ke area printArea
+                var printContents = document.getElementById('printArea').innerHTML;
+                var originalContents = document.body.innerHTML;
+
+                document.body.innerHTML = printContents;
                 window.print();
+                document.body.innerHTML = originalContents;
+                // Refresh agar modal tidak hilang setelah print
+                location.reload();
             }
         </script>
     @endpush

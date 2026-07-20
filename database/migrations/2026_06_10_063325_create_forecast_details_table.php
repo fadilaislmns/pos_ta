@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('simulation_details', function (Blueprint $table) {
+        Schema::create('forecast_details', function (Blueprint $table) {
             $table->id();
-            $table->integer('quantity');
-            $table->foreignId('simulation_id')->references('id')->on('profitability_simulations');
-            $table->foreignId('product_id')->references('id')->on('products');
+            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->date('forecast_date');
+            $table->integer('forecast_qty');
+            $table->timestamps();
         });
     }
 
@@ -24,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('simulation_details');
+        Schema::dropIfExists('forecast_details');
     }
 };

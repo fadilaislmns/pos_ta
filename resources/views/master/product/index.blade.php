@@ -1,6 +1,4 @@
 @extends('layouts.app')
-
-
 @section('content')
     <div class="container-fluid">
 
@@ -23,74 +21,141 @@
         <div class="card">
             <div class="card-body">
 
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>No</th>
-                            <th>Kode</th>
-                            <th>Nama</th>
-                            <th>Category</th>
-                            <th>Satuan</th>
-                            <th>Harga Beli</th>
-                            <th>Harga Jual</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-
-                    <tbody id="productTable">
-                        @foreach ($products as $i => $p)
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" style="min-width:1400px; white-space:nowrap;">
+                        <thead>
                             <tr>
-                                <td>{{ $products->firstItem() + $i }}</td>
-                                <td>{{ $p->product_code }}</td>
-                                <td>{{ $p->product_name }}</td>
-                                <td>{{ $p->category->category_name }}</td>
-                                <td>{{ $p->unit }}</td>
-                                <td>Rp {{ number_format($p->purchase_price, 0, ',', '.') }}</td>
-                                <td>Rp {{ number_format($p->selling_price, 0, ',', '.') }}</td>
-
-                                <td>
-                                    <!-- DETAIL -->
-                                    <a href="#" class="action-icon text-info btn-detail"
-                                        data-code="{{ $p->product_code }}" data-name="{{ $p->product_name }}"
-                                        data-category="{{ $p->category->category_name }}" data-unit="{{ $p->unit }}"
-                                        data-buy="{{ $p->purchase_price }}" data-sell="{{ $p->selling_price }}"
-                                        data-toggle="modal" data-target="#modalDetail">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <!-- EDIT -->
-                                    <a href="#" class="action-icon text-warning btn-edit"
-                                        data-product='@json($p)'>
-                                        <i class="fas fa-pen"></i>
-                                    </a>
-
-                                </td>
+                                <th>No</th>
+                                <th>Kode</th>
+                                <th>Nama</th>
+                                <th>Category</th>
+                                <th>Supplier</th>
+                                <th>Satuan</th>
+                                <th>Harga Beli</th>
+                                <th>Harga Jual</th>
+                                <th>Diskon</th>
+                                <th>Harga Aktif</th>
+                                <th>Status Diskon</th>
+                                <th>Aksi</th>
                             </tr>
-                        @endforeach
-                    </tbody>
+                        </thead>
 
-                </table>
+                        <tbody id="productTable">
+                            @foreach ($products as $i => $p)
+                                @php
+                                    $discount = $p->discount;
 
-            </div>
-            <div class="card-footer d-flex justify-content-between align-items-center">
+                                    $discountActive = false;
+                                    $finalPrice = $p->selling_price;
 
-                <div class="d-flex align-items-center mt-3">
+                                    if (
+                                        $discount &&
+                                        $discount->is_active &&
+                                        now()->between($discount->start_date, $discount->end_date)
+                                    ) {
+                                        $discountActive = true;
 
-                    <span class="mr-2">Show</span>
+                                        if ($discount->discount_type == 'percent') {
+                                            $finalPrice =
+                                                $p->selling_price -
+                                                ($p->selling_price * $discount->discount_value) / 100;
+                                        } else {
+                                            $finalPrice = $p->selling_price - $discount->discount_value;
+                                        }
+                                    }
+                                @endphp
+                                <tr>
+                                    <td>{{ $products->firstItem() + $i }}</td>
+                                    <td>{{ $p->product_code }}</td>
+                                    <td>{{ $p->product_name }}</td>
+                                    <td>{{ $p->category->category_name }}</td>
+                                    <td>{{ $p->suppliers->first()->supplier_name ?? '-' }}</td>
+                                    <td>{{ $p->unit }}</td>
+                                    <td>Rp {{ number_format($p->purchase_price, 0, ',', '.') }}</td>
+                                    <td>Rp {{ number_format($p->selling_price, 0, ',', '.') }}</td>
+                                    <td>
+                                        @if ($discountActive)
+                                            @if ($discount->discount_type == 'percent')
+                                                <span>
+                                                    {{ $discount->discount_value }}%
+                                                </span>
+                                            @else
+                                                <span>
+                                                    Rp {{ number_format($discount->discount_value, 0, ',', '.') }}
+                                                </span>
+                                            @endif
+                                        @else
+                                            <span> - </span>
+                                        @endif
+                                    </td>
 
-                    <select class="form-control mr-2" style="width: 80px;" onchange="changeLimit(this.value)">
-                        <option value="10" {{ request('limit') == 5 ? 'selected' : '' }}>10</option>
-                        <option value="25" {{ request('limit') == 10 ? 'selected' : '' }}>25</option>
-                        <option value="50" {{ request('limit') == 25 ? 'selected' : '' }}>50</option>
-                    </select>
+                                    <td>
+                                        @if ($discountActive)
+                                            <span class="font-weight-bold text-success">
+                                                Rp {{ number_format($finalPrice, 0, ',', '.') }}
+                                            </span>
+                                        @else
+                                            Rp {{ number_format($p->selling_price, 0, ',', '.') }}
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if ($discountActive)
+                                            <span class="badge badge-success">Aktif</span>
+                                        @elseif($discount)
+                                            <span class="badge badge-warning">Expired</span>
+                                        @else
+                                            <span class="badge badge-secondary">Tidak Ada</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <!-- DETAIL -->
+                                        <a href="#" class="action-icon text-info btn-detail"
+                                            data-code="{{ $p->product_code }}" data-name="{{ $p->product_name }}"
+                                            data-category="{{ $p->category->category_name }}"
+                                            data-unit="{{ $p->unit }}" data-buy="{{ $p->purchase_price }}"
+                                            data-sell="{{ $p->selling_price }}"
+                                            data-supplier="{{ $p->suppliers->first()->supplier_name ?? '-' }}"
+                                            data-toggle="modal" data-target="#modalDetail">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <!-- EDIT -->
+                                        <a href="#" class="action-icon text-warning btn-edit"
+                                            data-product='@json($p)'>
+                                            <i class="fas fa-pen"></i>
+                                        </a>
 
-                    <span>
-                        from {{ $products->total() }}
-                    </span>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
 
+                    </table>
+                    <div class="row align-items-center mt-4">
+                        <div class="col-md-6 text-muted small">
+                            Menampilkan <strong>{{ $products->firstItem() }}</strong> sampai
+                            <strong>{{ $products->lastItem() }}</strong> dari
+                            <strong>{{ $products->total() }}</strong> data
+                        </div>
+
+                        <div class="col-md-6 d-flex justify-content-end align-items-center">
+
+                            <div class="mr-3">
+                                <select id="perPageSelect" class="form-control form-control-sm"
+                                    style="width: 70px; border-radius: 8px;">
+                                    <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                                    <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                                    <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                {{ $products->appends(request()->query())->links('pagination::bootstrap-4') }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-
     </div>
 
 
@@ -105,34 +170,76 @@
                         <h5>Tambah Produk</h5>
                     </div>
 
-                    <div class="modal-body">
-                        {{-- <label>Kode Produk</label>
-                        <input type="text" name="product_code" class="form-control mb-2" placeholder="Kode produk">
-                        <label>Nama Produk</label>
-                        <input type="text" name="product_name" class="form-control mb-2" placeholder="Nama produk"> --}}
-                        <div class="form-group">
-                            <label>Kode Produk</label>
-                            <input type="text" name="product_code" class="form-control" placeholder="Kode Produk">
+                    <div class="modal-body px-4 py-4">
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold">
+                                Kode Produk <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="product_code" class="form-control"
+                                placeholder="Masukkan kode produk" required style="border-radius: 10px; height: 45px;">
                         </div>
 
-                        <div class="form-group">
-                            <label>Nama Produk</label>
-                            <input type="text" name="product_name" class="form-control" placeholder="Nama Produk">
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold ">
+                                Nama Produk <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="product_name" class="form-control"
+                                placeholder="Masukkan nama produk" required style="border-radius: 10px; height: 45px;">
                         </div>
-                        <label>Kategori</label>
-                        <select name="category_id" class="form-control mb-2">
-                            <option value="">-- Kategori --</option>
-                            @foreach ($categories as $c)
-                                <option value="{{ $c->id }}">{{ $c->category_name }}</option>
-                            @endforeach
-                        </select>
-                        <label>Satuan</label>
-                        <input type="text" name="unit" class="form-control mb-2" placeholder="Satuan">
-                        <label>Harga Beli</label>
-                        <input type="text" name="purchase_price" class="form-control mb-2" placeholder="Harga beli">
-                        <label>Harga Jual</label>
-                        <input type="text" name="selling_price" class="form-control mb-2" placeholder="Harga jual">
 
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold">
+                                Kategori <span class="text-danger">*</span>
+                            </label>
+                            <select name="category_id" class="form-control" required
+                                style="border-radius: 10px; height: 45px;">
+                                <option value="">-- Pilih Kategori --</option>
+                                @foreach ($categories as $c)
+                                    <option value="{{ $c->id }}">{{ $c->category_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold">
+                                Supplier <span class="text-danger">*</span>
+                            </label>
+                            <select name="supplier_id" class="form-control" required>
+                                <option value="">-- Pilih Supplier --</option>
+                                @foreach ($suppliers as $supplier)
+                                    <option value="{{ $supplier->id }}">{{ $supplier->supplier_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold">
+                                Satuan <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="unit" class="form-control" placeholder="Contoh: Pcs / Kg / Box"
+                                required style="border-radius: 10px; height: 45px;">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-0">
+                                    <label class="font-weight-bold">
+                                        Harga Beli <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" name="purchase_price" class="form-control" placeholder="0"
+                                        required style="border-radius: 10px; height: 45px;">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-0">
+                                    <label class="font-weight-bold ">
+                                        Harga Jual <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" name="selling_price" class="form-control" placeholder="0"
+                                        required style="border-radius: 10px; height: 45px;">
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="modal-footer">
@@ -148,39 +255,87 @@
     <!--  MODAL EDIT  -->
     <div class="modal fade" id="modalEdit">
         <div class="modal-dialog">
-
             <form id="formEdit">
                 @csrf
                 @method('PUT')
-
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5>Edit Produk</h5>
                     </div>
-
-                    <div class="modal-body">
+                    <div class="modal-body px-4 py-4">
                         @if (session('error'))
-                            <div class="alert alert-danger">
+                            <div class="alert alert-danger" style="border-radius: 10px;">
                                 {{ session('error') }}
                             </div>
                         @endif
-                        <label>Kode Produk</label>
-                        <input type="text" id="editCode" name="product_code" class="form-control mb-2">
-                        <label>Nama Produk</label>
-                        <input type="text" id="editName" name="product_name" class="form-control mb-2">
-                        <label>Kategori</label>
-                        <select id="editCategory" name="category_id" class="form-control mb-2">
-                            @foreach ($categories as $c)
-                                <option value="{{ $c->id }}">{{ $c->category_name }}</option>
-                            @endforeach
-                        </select>
-                        <label>Satuan</label>
-                        <input type="text" id="editUnit" name="unit" class="form-control mb-2">
-                        <label>Harga Beli</label>
-                        <input type="text" id="editBuy" name="purchase_price" class="form-control mb-2">
-                        <label>Harga Jual</label>
-                        <input type="text" id="editSell" name="selling_price" class="form-control mb-2">
 
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold">
+                                Kode Produk <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" id="editCode" name="product_code" class="form-control" required
+                                style="border-radius: 10px; height: 45px;">
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold">
+                                Nama Produk <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" id="editName" name="product_name" class="form-control" required
+                                style="border-radius: 10px; height: 45px;">
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold">
+                                Kategori <span class="text-danger">*</span>
+                            </label>
+                            <select id="editCategory" name="category_id" class="form-control" required
+                                style="border-radius: 10px; height: 45px;">
+                                <option value="">-- Pilih Kategori --</option>
+                                @foreach ($categories as $c)
+                                    <option value="{{ $c->id }}">{{ $c->category_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold">
+                                Supplier
+                            </label>
+                            <select id="editSupplier" name="supplier_id" class="form-control">
+                                @foreach ($suppliers as $supplier)
+                                    <option value="{{ $supplier->id }}">{{ $supplier->supplier_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold">
+                                Satuan <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" id="editUnit" name="unit" class="form-control" required
+                                style="border-radius: 10px; height: 45px;">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-0">
+                                    <label class="font-weight-bold">
+                                        Harga Beli <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" id="editBuy" name="purchase_price" class="form-control"
+                                        required style="border-radius: 10px; height: 45px;">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-0">
+                                    <label class="font-weight-bold">
+                                        Harga Jual <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" id="editSell" name="selling_price" class="form-control"
+                                        required style="border-radius: 10px; height: 45px;">
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="modal-footer">
@@ -201,38 +356,52 @@
                     <h5>Detail Product</h5>
                 </div>
 
-                <div class="modal-body">
-
-                    <div class="form-group">
-                        <label>Kode Produk</label>
-                        <input type="text" id="detailCode" class="form-control" readonly>
+                <div class="modal-body px-4 py-4">
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold">Kode Produk</label>
+                        <input type="text" id="detailCode" class="form-control" readonly
+                            style="border-radius: 10px; height: 45px; background-color: #f8f9fa;">
                     </div>
 
-                    <div class="form-group">
-                        <label>Nama Produk</label>
-                        <input type="text" id="detailName" class="form-control" readonly>
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold">Nama Produk</label>
+                        <input type="text" id="detailName" class="form-control" readonly
+                            style="border-radius: 10px; height: 45px; background-color: #f8f9fa;">
                     </div>
 
-                    <div class="form-group">
-                        <label>Kategori</label>
-                        <input type="text" id="detailCategory" class="form-control" readonly>
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold">Kategori</label>
+                        <input type="text" id="detailCategory" class="form-control" readonly
+                            style="border-radius: 10px; height: 45px; background-color: #f8f9fa;">
+                    </div>
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold">Supplier</label>
+                        <input type="text" id="detailSupplier" class="form-control" readonly
+                            style="border-radius: 10px; height: 45px; background-color: #f8f9fa;">
                     </div>
 
-                    <div class="form-group">
-                        <label>Satuan</label>
-                        <input type="text" id="detailUnit" class="form-control" readonly>
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold">Satuan</label>
+                        <input type="text" id="detailUnit" class="form-control" readonly
+                            style="border-radius: 10px; height: 45px; background-color: #f8f9fa;">
                     </div>
 
-                    <div class="form-group">
-                        <label>Harga Beli</label>
-                        <input type="text" id="detailBuy" class="form-control" readonly>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-0">
+                                <label class="font-weight-bold">Harga Beli</label>
+                                <input type="text" id="detailBuy" class="form-control" readonly
+                                    style="border-radius: 10px; height: 45px; background-color: #f8f9fa;">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-0">
+                                <label class="font-weight-bold">Harga Jual</label>
+                                <input type="text" id="detailSell" class="form-control" readonly
+                                    style="border-radius: 10px; height: 45px; background-color: #f8f9fa;">
+                            </div>
+                        </div>
                     </div>
-
-                    <div class="form-group">
-                        <label>Harga Jual</label>
-                        <input type="text" id="detailSell" class="form-control" readonly>
-                    </div>
-
                 </div>
 
             </div>
@@ -308,17 +477,18 @@
                     e.preventDefault();
                     let form = $(this);
                     let modal = $('#modalAdd');
+
+                    // Ambil data form
                     let formData = form.serializeArray();
+
+                    // BERSIHKAN DATA HARGA (Hapus "Rp " dan titik)
                     formData.forEach(item => {
-                        if (item.name == 'purchase_price' ||
-                            item.name == 'selling_price') {
-                            item.value = item.value.replace(/\./g, '');
+                        if (item.name == 'purchase_price' || item.name == 'selling_price') {
+                            item.value = item.value.replace(/[^0-9]/g, '');
                         }
                     });
-                    $.post(
-                            "{{ route('products.store') }}",
-                            $.param(formData)
-                        )
+
+                    $.post("{{ route('products.store') }}", $.param(formData))
                         .done(function(res) {
                             modal.modal('hide');
                             Swal.fire({
@@ -327,13 +497,11 @@
                                 icon: 'success',
                                 title: 'Produk berhasil ditambahkan',
                                 showConfirmButton: false,
-                                timer: 4000,
-                                timerProgressBar: true
+                                timer: 2000
                             });
-                            setTimeout(() => {
-                                location.reload();
-                            }, 1200);
 
+                            // Refresh tabel agar data baru muncul
+                            setTimeout(() => location.reload(), 1000);
                         })
                         .fail(function(xhr) {
 
@@ -386,9 +554,14 @@
                     $('#editCode').val(data.product_code);
                     $('#editName').val(data.product_name);
                     $('#editCategory').val(data.category_id);
+                    let supplierId = null;
+                    if (data.suppliers.length > 0) {
+                        supplierId = data.suppliers[0].id;
+                    }
+                    $('#editSupplier').val(supplierId);
                     $('#editUnit').val(data.unit);
-                    $('#editBuy').val(data.purchase_price);
-                    $('#editSell').val(data.selling_price);
+                    $('#editBuy').val(Number(data.purchase_price).toLocaleString('id-ID'));
+                    $('#editSell').val(Number(data.selling_price).toLocaleString('id-ID'));
 
                     $('#formEdit').attr('action', "/products/" + data.id);
 
@@ -413,6 +586,7 @@
                     $('#detailCode').val($(this).data('code'));
                     $('#detailName').val($(this).data('name'));
                     $('#detailCategory').val($(this).data('category'));
+                    $('#detailSupplier').val($(this).data('supplier'));
                     $('#detailUnit').val($(this).data('unit'));
                     $('#detailBuy').val(
                         'Rp ' + Number($(this).data('buy'))
@@ -496,6 +670,12 @@
                         });
                 });
 
+            });
+            document.getElementById('perPageSelect').addEventListener('change', function() {
+                const url = new URL(window.location.href);
+                url.searchParams.set('per_page', this.value);
+                url.searchParams.set('page', 1);
+                window.location.href = url.toString();
             });
         </script>
         @if (session('success'))

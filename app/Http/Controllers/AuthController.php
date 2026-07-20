@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -44,12 +45,10 @@ class AuthController extends Controller
     // LOGOUT
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Logout berhasil'
-        ]);
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect('/login');
     }
 
     // GET USER LOGIN
@@ -59,5 +58,48 @@ class AuthController extends Controller
             'success' => true,
             'data' => $request->user()->load('role')
         ]);
+    }
+
+    public function authenticate(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
+
+        if (!Auth::attempt($credentials)) {
+            return back()->with(
+                'error',
+                'Email atau password salah'
+            );
+        }
+
+        $request->session()->regenerate();
+        $user = Auth::user();
+        // USER NONAKTIF
+        if ($user->status != 'active') {
+            Auth::logout();
+            return back()->with(
+                'error',
+                'User tidak aktif'
+            );
+        }
+
+        // SUPER ADMIN
+        if ($user->role->role_name == 'super_admin') {
+            return redirect('/dashboard');
+        }
+
+        // ADMIN
+        if ($user->role->role_name == 'admin') {
+            return redirect('/dashboard');
+        }
+
+        // CASHIER
+        if ($user->role->role_name == 'cashier') {
+            return redirect('/dashboard');
+        }
+
+        return redirect('/');
     }
 }

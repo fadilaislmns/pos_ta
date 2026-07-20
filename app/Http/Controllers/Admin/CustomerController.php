@@ -10,9 +10,13 @@ use Illuminate\Support\Facades\Validator;
 class CustomerController extends Controller
 {
     // INDEX
-    public function index()
+    public function index(Request $request)
     {
-        $customers = Customer::latest()->get();
+        $perPage = $request->query('per_page', 10);
+
+        $customers = Customer::latest()
+            ->paginate($perPage)
+            ->withQueryString();
 
         return view('master.customer.index', compact('customers'));
     }

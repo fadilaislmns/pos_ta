@@ -85,9 +85,11 @@
     </div>
     <div id="filterPanel" class="filter-panel">
 
-        <div class="filter-header">
-            <h5>Filter</h5>
-            <button type="button" id="closeFilter">&times;</button>
+        <div class="filter-header d-flex justify-content-between align-items-center"">
+            <h5 class="mb-0">Filter</h5>
+            <button class="btn btn-sm btn-light" id="closeFilter">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
 
         <form method="GET">

@@ -11,6 +11,7 @@ class SaleDetail extends Model
         'product_id',
         'quantity',
         'selling_price',
+        'discount_amount',
         'subtotal'
     ];
 

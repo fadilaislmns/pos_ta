@@ -48,11 +48,11 @@ class CustomerDebtController extends Controller
         if ($request->customer) {
             $query->whereHas(
                 'sale.customer',
-                function($q) use ($request){
+                function ($q) use ($request) {
                     $q->where(
                         'customer_name',
                         'like',
-                        '%'.$request->customer.'%'
+                        '%' . $request->customer . '%'
                     );
                 }
             );
@@ -67,7 +67,7 @@ class CustomerDebtController extends Controller
         if ($request->date) {
             $query->whereHas(
                 'sale',
-                function($q) use ($request){
+                function ($q) use ($request) {
                     $q->whereDate(
                         'sale_date',
                         $request->date
@@ -76,29 +76,54 @@ class CustomerDebtController extends Controller
             );
         }
 
-        $debts = $query
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
+        $perPage = $request->query('per_page', 10);
+
+        $debts = $query->latest()->paginate($perPage)->withQueryString();
 
         return view(
             'transaksi.customer_debt.index',
             compact('debts')
         );
     }
-    
+
     // BAYAR HUTANG
-    public function pay($id)
+    public function pay(Request $request, $id)
     {
-        $debt = CustomerDebt::findOrFail($id);
-        $debt->update([
-            'status' => 'paid',
-            'amount' => 0
+        $request->validate([
+            'amount' => 'required|numeric|min:1'
         ]);
+
+        $debt = CustomerDebt::with('sale')->findOrFail($id);
+
+        $payAmount = $request->amount;
+
+        // Tidak boleh melebihi sisa hutang
+        if ($payAmount > $debt->amount) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nominal pembayaran melebihi sisa hutang.'
+            ], 422);
+        }
+
+        // Tambah total pembayaran pada transaksi
+        $debt->sale->paid_amount += $payAmount;
+        $debt->sale->save();
+
+        // Kurangi sisa hutang
+        $debt->amount -= $payAmount;
+
+        // Jika lunas
+        if ($debt->amount == 0) {
+            $debt->status = 'paid';
+        }
+
+        $debt->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Hutang berhasil dilunasi',
+            'message' => $debt->status == 'paid'
+                ? 'Hutang telah lunas.'
+                : 'Pembayaran berhasil disimpan.',
             'data' => $debt
         ]);
     }
@@ -117,7 +142,8 @@ class CustomerDebtController extends Controller
     {
         $debt = CustomerDebt::with([
             'sale.customer',
-            'sale.details.product'
+            'sale.details.product',
+            'sale.user'
         ])->findOrFail($id);
 
         return response()->json([

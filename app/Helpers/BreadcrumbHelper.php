@@ -10,32 +10,93 @@ class BreadcrumbHelper
 
         $breadcrumb = [];
 
-        // Selalu mulai dari dashboard
+        // DASHBOARD
         $breadcrumb[] = [
             'name' => 'Dashboard',
-            'url' => url('/dashboard')
+            'url' => route('dashboard'),
+            'clickable' => true
         ];
 
         $path = '';
 
+        // CUSTOM NAMA
+        $customNames = [
+
+            // REPORT
+            'sales' => 'Penjualan',
+            'purchases' => 'Pembelian',
+            'profit' => 'Analisis Profit',
+
+            // SALES
+            'create' => 'Tambah',
+            'edit' => 'Edit',
+            'detail' => 'Detail',
+
+            // MASTER
+            'products' => 'Produk',
+            'categories' => 'Kategori',
+            'customers' => 'Pelanggan',
+            'suppliers' => 'Supplier',
+            'users' => 'Pengguna',
+
+            // INVENTORY
+            'stocks' => 'Stok',
+
+            // PIUTANG
+            'customer-debts' => 'Piutang',
+
+        ];
+
+        // KHUSUS REPORT
+        if (isset($segments[0]) && $segments[0] == 'reports') {
+
+            $breadcrumb[] = [
+                'name' => 'Laporan',
+                'url' => null,
+                'clickable' => false
+            ];
+
+            // ambil segment terakhir
+            $lastSegment = end($segments);
+
+            $breadcrumb[] = [
+                'name' => $customNames[$lastSegment]
+                    ?? ucfirst($lastSegment),
+
+                'url' => url()->current(),
+                'clickable' => true
+            ];
+
+            return $breadcrumb;
+        }
+
+        // NORMAL PAGE
         foreach ($segments as $segment) {
-
             $path .= '/' . $segment;
-
-            // Skip dashboard biar gak dobel
-            if ($segment == 'dashboard') continue;
-
-            // Format nama
-            $name = ucfirst(str_replace('-', ' ', $segment));
-
-            // Kalau angka → anggap detail
-            if (is_numeric($segment)) {
-                $name = 'Detail';
+            if ($segment == 'dashboard') {
+                continue;
             }
+            // Skip reports
+            if ($segment == 'reports') {
+                continue;
+            }
+            // ANGKA = DETAIL
+            if (is_numeric($segment)) {
+                $breadcrumb[] = [
+                    'name' => 'Detail',
+                    'url' => url($path),
+                    'clickable' => true
+                ];
+                continue;
+            }
+
+            $name = $customNames[$segment]
+                ?? ucfirst(str_replace('-', ' ', $segment));
 
             $breadcrumb[] = [
                 'name' => $name,
-                'url' => url($path)
+                'url' => url($path),
+                'clickable' => true
             ];
         }
 
