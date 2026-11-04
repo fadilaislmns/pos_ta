@@ -39,16 +39,100 @@ mapping_produk = {
     "surya_16": 18
 }
 
-# MAPPING SCALE PROPHET TERBAIK PER PRODUK
-mapping_scale = {
-    "surya_kaleng": 0.1,
-    "sampoerna_16": 0.05,
-    "aqua_600ml": 0.01,
-    "aqua_1500ml": 0.01,
-    "indomie": 0.01,
-    "teh_botol_450ml": 0.01,
-    "golda": 0.1,
-    "surya_16": 0.1
+# ============================================================
+# MAPPING KONFIGURASI PROPHET TERBAIK PER PRODUK
+# HASIL EKSPERIMEN PEMBAGIAN DATA 80% TRAINING : 20% TESTING
+# ============================================================
+
+mapping_config = {
+
+    "surya_kaleng": {
+        "changepoint_prior_scale": 0.1,
+        "yearly_seasonality": True,
+        "weekly_seasonality": True,
+        "daily_seasonality": False,
+        "seasonality_mode": "multiplicative",
+        "n_changepoints": 25,
+        "changepoint_range": 0.9,
+        "holidays": None
+    },
+
+    "sampoerna_16": {
+        "changepoint_prior_scale": 0.01,
+        "yearly_seasonality": True,
+        "weekly_seasonality": False,
+        "daily_seasonality": False,
+        "seasonality_mode": "multiplicative",
+        "n_changepoints": 10,
+        "changepoint_range": 1.0,
+        "holidays": None
+    },
+
+    "aqua_600ml": {
+        "changepoint_prior_scale": 0.1,
+        "yearly_seasonality": False,
+        "weekly_seasonality": True,
+        "daily_seasonality": False,
+        "seasonality_mode": "multiplicative",
+        "n_changepoints": 25,
+        "changepoint_range": 0.9,
+        "holidays": None
+    },
+
+    "aqua_1500ml": {
+        "changepoint_prior_scale": 0.05,
+        "yearly_seasonality": True,
+        "weekly_seasonality": True,
+        "daily_seasonality": False,
+        "seasonality_mode": "additive",
+        "n_changepoints": 25,
+        "changepoint_range": 0.9,
+        "holidays": None
+    },
+
+    "indomie": {
+        "changepoint_prior_scale": 0.05,
+        "yearly_seasonality": True,
+        "weekly_seasonality": False,
+        "daily_seasonality": False,
+        "seasonality_mode": "additive",
+        "n_changepoints": 10,
+        "changepoint_range": 1.0,
+        "holidays": None
+    },
+
+    "teh_botol_450ml": {
+        "changepoint_prior_scale": 0.05,
+        "yearly_seasonality": True,
+        "weekly_seasonality": True,
+        "daily_seasonality": False,
+        "seasonality_mode": "additive",
+        "n_changepoints": 40,
+        "changepoint_range": 0.8,
+        "holidays": None
+    },
+
+    "golda": {
+        "changepoint_prior_scale": 0.001,
+        "yearly_seasonality": False,
+        "weekly_seasonality": True,
+        "daily_seasonality": False,
+        "seasonality_mode": "multiplicative",
+        "n_changepoints": 40,
+        "changepoint_range": 0.9,
+        "holidays": None
+    },
+
+    "surya_16": {
+        "changepoint_prior_scale": 0.05,
+        "yearly_seasonality": True,
+        "weekly_seasonality": False,
+        "daily_seasonality": False,
+        "seasonality_mode": "additive",
+        "n_changepoints": 10,
+        "changepoint_range": 0.9,
+        "holidays": None
+    }
 }
 
 # DAFTAR SHEET YANG AKAN DIPROSES
@@ -69,7 +153,7 @@ for sheet in sheet_produk:
     # 1. PREPROCESSING BARU
     df['ds'] = pd.to_datetime(df['ds'])
     df = df.sort_values('ds').dropna()
-    df.loc[df['y'] == 0, 'y'] = np.nan # Handling hari libur
+    df.loc[df['y'] == 0, 'y'] = np.nan 
 
     cutoff_date = None
     #cutoff_date = "2025-08-31"
@@ -97,38 +181,87 @@ for sheet in sheet_produk:
         lead_time = int(supplier.iloc[0]['lead_time'])
         moq = int(supplier.iloc[0]['MOQ'])
 
-    current_scale = mapping_scale[sheet]
+    # ============================================================
+    # KONFIGURASI MODEL PRODUK
+    # ============================================================
 
-    # TAHAP 1: CARI ERROR (MAE) DARI 14 HARI TERAKHIR
-    train_data = df.iloc[:-lead_time].copy()
-    test_data = df.iloc[-lead_time:].copy()
+    config = mapping_config[sheet]
+
+    print("Konfigurasi Prophet:")
+    print("  changepoint_prior_scale :", config["changepoint_prior_scale"])
+    print("  yearly_seasonality      :", config["yearly_seasonality"])
+    print("  weekly_seasonality      :", config["weekly_seasonality"])
+    print("  daily_seasonality       :", config["daily_seasonality"])
+    print("  seasonality_mode        :", config["seasonality_mode"])
+    print("  n_changepoints          :", config["n_changepoints"])
+    print("  changepoint_range       :", config["changepoint_range"])
+
+
+    # ============================================================
+    # TAHAP 1: EVALUASI MODEL
+    # 80% TRAINING : 20% TESTING
+    # ============================================================
+
+    train_size = int(len(df) * 0.80)
+
+    train_data = df.iloc[:train_size].copy()
+    test_data = df.iloc[train_size:].copy()
+
+    print("Jumlah training :", len(train_data))
+    print("Jumlah testing  :", len(test_data))
+
 
     model_eval = Prophet(
-        changepoint_prior_scale=current_scale,
-        yearly_seasonality=True,
-        weekly_seasonality=True,
-        daily_seasonality=False
+        changepoint_prior_scale=config["changepoint_prior_scale"],
+        yearly_seasonality=config["yearly_seasonality"],
+        weekly_seasonality=config["weekly_seasonality"],
+        daily_seasonality=config["daily_seasonality"],
+        seasonality_mode=config["seasonality_mode"],
+        n_changepoints=config["n_changepoints"],
+        changepoint_range=config["changepoint_range"],
+        holidays=config["holidays"]
     )
+
     model_eval.fit(train_data)
 
-    future_eval = test_data[['ds']].copy()
-    forecast_eval = model_eval.predict(future_eval)
+    future_eval = test_data[["ds"]].copy()
 
-    y_true = test_data['y'].values
-    y_pred = forecast_eval['yhat'].values
+    forecast_eval = model_eval.predict(
+        future_eval
+    )
+
+    y_true = test_data["y"].values
+    y_pred = forecast_eval["yhat"].values
+
     mask = ~np.isnan(y_true) & (y_true != 0)
 
     if mask.sum() > 0:
-        mae = mean_absolute_error(y_true[mask], y_pred[mask])
-    else: mae = 0
+        mae = mean_absolute_error(
+            y_true[mask],
+            y_pred[mask]
+        )
+    else:
+        mae = 0
 
-    # TAHAP 2: PREDIKSI MASA DEPAN DARI SELURUH DATA
+    print("MAE evaluasi :", round(mae, 2))
+
+    # ============================================================
+    # MODEL FINAL SESUAI KONFIGURASI TERBAIK PRODUK
+    # ============================================================
+
+    config = mapping_config[sheet]
+
     model_final = Prophet(
-        changepoint_prior_scale=current_scale,
-        yearly_seasonality=True,
-        weekly_seasonality=True,
-        daily_seasonality=False
+        changepoint_prior_scale=config["changepoint_prior_scale"],
+        yearly_seasonality=config["yearly_seasonality"],
+        weekly_seasonality=config["weekly_seasonality"],
+        daily_seasonality=config["daily_seasonality"],
+        seasonality_mode=config["seasonality_mode"],
+        n_changepoints=config["n_changepoints"],
+        changepoint_range=config["changepoint_range"],
+        holidays=config["holidays"]
     )
+
     model_final.fit(df)
 
     future_final = model_final.make_future_dataframe(periods=lead_time)
@@ -153,11 +286,8 @@ for sheet in sheet_produk:
     rekomendasi = max(0, rop - current_stock)
 
     # SESUAIKAN MOQ
-    if rekomendasi > 0:
-        if rekomendasi < moq:
-            rekomendasi = moq
-        else:
-            rekomendasi = int(np.ceil(rekomendasi / moq)) * moq
+    if rekomendasi > 0 and rekomendasi < moq:
+        rekomendasi = moq
 
     print(f"ROP={rop} | STOCK={current_stock} | REKOMENDASI={rekomendasi}")
 

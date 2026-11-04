@@ -105,7 +105,7 @@
                         <th>Pendapatan</th>
                         <th>Modal Penjualan</th>
                         <th>Estimasi Keuntungan</th>
-                        <th>Persentase Keuntungan</th>
+                        <th>Margin Keuntungan</th>
                     </tr>
                 </thead>
                 <tbody>

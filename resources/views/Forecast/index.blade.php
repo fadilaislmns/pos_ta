@@ -104,13 +104,22 @@
                 <div class="card shadow-sm border-0">
                     <div class="card-body text-center">
                         <small class="text-muted">Produk Dominan</small>
-                        <h5 class="text-danger mt-2">
-                            {{ $topProduct->product->product_name }}
-                        </h5>
-                        <small>
-                            {{ round(($topProduct->predicted_qty / $totalForecast) * 100, 1) }}%
-                            kontribusi
-                        </small>
+                        @if ($topProduct && $topProduct->product)
+                            <h5 class="text-danger mt-2">
+                                {{ $topProduct->product->product_name }}
+                            </h5>
+                            <small>
+                                {{ $totalForecast > 0 ? round(($topProduct->predicted_qty / $totalForecast) * 100, 1) : 0 }}%
+                                kontribusi
+                            </small>
+                        @else
+                            <h5 class="text-muted mt-2">
+                                -
+                            </h5>
+                            <small>
+                                Belum ada data forecast
+                            </small>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -142,24 +151,29 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($data->sortByDesc('predicted_qty') as $item)
+                       @if ($data->isEmpty())
                             <tr>
-                                <td>{{ $loop->iteration }}</td>
-                                <td>{{ $item->product->product_name }}</td>
-                                <td>
-                                    <span class="badge bg-primary">
-                                        {{ number_format($item->predicted_qty) }}
-                                    </span>
-                                </td>
-                                <td>{{ round($item->predicted_qty / 14) }}</td>
-                                <td>{{ round(($item->predicted_qty / $totalForecast) * 100, 1) }}%</td>
-                                <td>
-                                    {{ \Carbon\Carbon::parse($item->forecast_period)->format('d/m/Y') }}
-                                    -
-                                    {{ \Carbon\Carbon::parse($item->forecast_period)->addDays(13)->format('d/m/Y') }}
-                                </td>
+                                <td colspan="6" class="text-center">Tidak ada data</td>
                             </tr>
-                        @endforeach
+                        @endif
+                            @foreach ($data->sortByDesc('predicted_qty') as $item)
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>{{ $item->product->product_name }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">
+                                            {{ number_format($item->predicted_qty) }}
+                                        </span>
+                                    </td>
+                                    <td>{{ round($item->predicted_qty / 14) }}</td>
+                                    <td>{{ round(($item->predicted_qty / $totalForecast) * 100, 1) }}%</td>
+                                    <td>
+                                        {{ \Carbon\Carbon::parse($item->forecast_period)->format('d/m/Y') }}
+                                        -
+                                        {{ \Carbon\Carbon::parse($item->forecast_period)->addDays(13)->format('d/m/Y') }}
+                                    </td>
+                                </tr>
+                            @endforeach
                     </tbody>
                 </table>
             </div>

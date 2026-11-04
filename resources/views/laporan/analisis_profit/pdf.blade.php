@@ -89,7 +89,7 @@
     </div>
     <hr>
     <div class="title">
-        LAPORAN ANALISIS PROFIT
+        LAPORAN PROFIT BULANAN
     </div>
     <table class="summary">
         <tr>

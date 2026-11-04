@@ -40,6 +40,7 @@ class PurchaseRecommendationController extends Controller
         $products = Product::whereIn('id', $data->pluck('product_id'))
             ->orderBy('product_name')
             ->get();
+        // dd($data->count());
         return view(
             'forecast.recommendation',
             compact(

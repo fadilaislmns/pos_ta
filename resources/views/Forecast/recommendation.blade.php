@@ -51,13 +51,22 @@
                 <i class="fas fa-calendar-alt"></i>
                 Periode Forecast :
                 <strong>
-                    {{ \Carbon\Carbon::parse($data->first()->forecast_period)->translatedFormat('d F Y') }}
+                    @if ($data->count() == 0)
+                        -
+                    @else
+                        {{ \Carbon\Carbon::parse($data->first()->forecast_period)->translatedFormat('d F Y') }}
+                    @endif
                 </strong>
                 s/d
                 <strong>
-                    {{ \Carbon\Carbon::parse($data->first()->forecast_period)->addDays(13)->translatedFormat('d F Y') }}
+                    @if ($data->count() == 0)
+                        -
+                    @else
+                        {{ \Carbon\Carbon::parse($data->first()->forecast_period)->addDays(13)->translatedFormat('d F Y') }}
+                    @endif
                 </strong>
             </small>
+
         </div>
 
         {{-- Card Ringkasan --}}
@@ -123,6 +132,11 @@
                             </tr>
                         </thead>
                         <tbody>
+                            @if ($data->isEmpty())
+                                <tr>
+                                    <td colspan="12" class="text-center">Tidak ada data</td>
+                                </tr>
+                            @endif
                             @foreach ($data as $item)
                                 @php
                                     $supplier = $item->product->suppliers->first();
